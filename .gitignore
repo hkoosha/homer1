@@ -1,0 +1,8 @@
+.devcontainer
+.vscode
+.idea
+
+main/build/
+build/
+
+sdkconfig.old
