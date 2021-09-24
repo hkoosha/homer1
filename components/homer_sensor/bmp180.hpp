@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <iostream>
+#include <limits>
 
 #include "esp_err.h"
 
@@ -13,6 +14,7 @@ using std::int16_t;
 using std::uint16_t;
 using std::uint32_t;
 using std::uint64_t;
+using std::endl;
 
 
 namespace homer1 {
@@ -24,7 +26,8 @@ const uint8_t I2C_ADDR = 0x77;
 
 const uint64_t ERROR_NONE = i2c::ERROR_NONE;
 //---
-const uint64_t ERROR_INIT = i2c::ERROR_MAX << 1;
+const uint64_t ERROR_DATA_NOT_AVAILABLE = i2c::ERROR_MAX << 1;
+const uint64_t ERROR_INIT = ERROR_DATA_NOT_AVAILABLE << 1;
 const uint64_t ERROR_READ_SENSOR_ROM = ERROR_INIT << 1;
 const uint64_t ERROR_READ_UNCOMPENSATED_TEMPERATURE = ERROR_READ_SENSOR_ROM << 1;
 const uint64_t ERROR_READ_UNCOMPENSATED_PRESSURE = ERROR_READ_UNCOMPENSATED_TEMPERATURE << 1;
@@ -32,21 +35,49 @@ const uint64_t ERROR_CALCULATE_B5 = ERROR_READ_UNCOMPENSATED_PRESSURE << 1;
 const uint64_t ERROR_READ_PRESSURE = ERROR_CALCULATE_B5 << 1;
 
 
-enum Mode
-{
-    // ULTRA_LOW_POWER = 0,
-    // STANDARD = 1,
-    // HIGH_RES = 2,
-    ULTRA_HIGH_RES = 3,
-};
-
-struct SensorData final
+struct SensorData final : public Dumper
 {
     uint64_t error;
     uint64_t time_to_read;
     uint32_t pressure;
     float altitude;
     float temperature;
+
+    explicit SensorData() noexcept:
+            error{ERROR_DATA_NOT_AVAILABLE},
+            time_to_read{std::numeric_limits<uint64_t>::max()},
+            pressure{std::numeric_limits<uint32_t>::max()},
+            altitude{std::numeric_limits<float>::quiet_NaN()},
+            temperature{std::numeric_limits<float>::quiet_NaN()}
+    {
+    }
+
+    explicit SensorData(const uint64_t error,
+                        const uint64_t time_to_read,
+                        const uint32_t pressure,
+                        const float altitude,
+                        const float temperature) noexcept:
+            error{error},
+            time_to_read{time_to_read},
+            pressure{pressure},
+            altitude{altitude},
+            temperature{temperature}
+    {
+    }
+
+    void dump(std::stringstream& ss) const noexcept override
+    {
+        ss << "ERR: " << uint64_to_bin(this->error) << endl;
+        ss << "TTR: " << this->time_to_read << endl;
+        ss << "temperature:  " << this->temperature << endl;
+        ss << "pressure:     " << this->pressure << endl;
+        ss << "altitude:     " << this->altitude << endl;
+    }
+
+    bool has_data() const noexcept override
+    {
+        return (this->error & ERROR_DATA_NOT_AVAILABLE) == ERROR_NONE;
+    }
 };
 
 class Sensor final
@@ -62,8 +93,7 @@ public:
 
     Sensor(Sensor&& other) noexcept = default;
 
-    explicit Sensor(i2c::Device i2c,
-                    Mode mode = Mode::ULTRA_HIGH_RES) noexcept;
+    explicit Sensor(i2c::Device i2c) noexcept;
 
     ~Sensor() noexcept = default;
 
@@ -72,7 +102,7 @@ public:
 
     bool is_initialized() const noexcept;
 
-    SensorData read_data(uint32_t reference_pressure = 0) const;
+    SensorData read_data(uint32_t reference_pressure = SEA_LEVEL_PRESSURE) const;
 
 private:
 
@@ -95,7 +125,7 @@ private:
     uint64_t read_sensor_rom() noexcept;
 
 
-    const Mode oversampling;
+    const int32_t oversampling = 3;
     const i2c::Device i2c;
     bool initialized{};
 
@@ -111,12 +141,6 @@ private:
     int16_t mc{};
     int16_t md{};
 };
-
-
-SensorData copy(const SensorData& data) noexcept;
-
-void dump(const SensorData& data,
-          std::stringstream& ss) noexcept;
 
 }
 }

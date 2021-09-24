@@ -2,12 +2,15 @@
 
 #include <cstdint>
 #include <sstream>
+#include <limits>
 
 #include "i2c.hpp"
+#include "util.hpp"
 
 using std::uint8_t;
 using std::uint16_t;
 using std::uint64_t;
+using std::endl;
 
 
 namespace homer1 {
@@ -24,12 +27,44 @@ const uint8_t ADDR_1 = 0x44;
 const uint32_t DELAY = 10;
 const uint64_t MEASUREMENT_GAP_MILLIS = 2000;
 
-struct SensorData final
+struct SensorData final : public Dumper
 {
     uint64_t error;
     uint64_t time_to_read;
     float temperature;
     float humidity;
+
+    explicit SensorData() noexcept:
+            error{ERROR_DATA_NOT_AVAILABLE_YET},
+            time_to_read{std::numeric_limits<uint64_t>::max()},
+            temperature{std::numeric_limits<float>::quiet_NaN()},
+            humidity{std::numeric_limits<float>::quiet_NaN()}
+    {
+    }
+
+    explicit SensorData(const uint64_t error,
+                        const uint64_t time_to_read,
+                        const float temperature,
+                        const float humidity) noexcept:
+            error{error},
+            time_to_read{time_to_read},
+            temperature{temperature},
+            humidity{humidity}
+    {
+    }
+
+    void dump(std::stringstream& ss) const noexcept override
+    {
+        ss << "ERR: " << uint64_to_bin(this->error) << endl;
+        ss << "TTR: " << this->time_to_read << endl;
+        ss << "temperature: " << this->temperature << endl;
+        ss << "humidity:    " << this->humidity << endl;
+    }
+
+    bool has_data() const noexcept override
+    {
+        return (this->error & ERROR_DATA_NOT_AVAILABLE_YET) == ERROR_NONE;
+    }
 };
 
 class Sensor final
@@ -64,12 +99,6 @@ private:
     float temperature{};
     float humidity{};
 };
-
-
-SensorData copy(const SensorData& data) noexcept;
-
-void dump(const SensorData& data,
-          std::stringstream& ss) noexcept;
 
 }
 }

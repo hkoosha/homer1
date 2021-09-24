@@ -45,9 +45,7 @@ const uint8_t READ_PRESSURE_CMD = 0x34;
 
 namespace Bmp180 {
 
-Sensor::Sensor(const i2c::Device i2c,
-               const Mode mode) noexcept:
-        oversampling{mode},
+Sensor::Sensor(const i2c::Device i2c) noexcept:
         i2c{i2c},
         initialized{false}
 {
@@ -293,31 +291,6 @@ bool Sensor::is_initialized() const noexcept
 {
     return this->initialized;
 }
-
-//=============================================================================
-
-SensorData copy(const SensorData& data) noexcept
-{
-    return SensorData{
-            .error = data.error,
-            .time_to_read = data.time_to_read,
-            .pressure = data.pressure,
-            .altitude = data.altitude,
-            .temperature = data.temperature,
-    };
-}
-
-void dump(const SensorData& data,
-          std::stringstream& ss) noexcept
-{
-    ss << "ERR: " << uint64_to_bin(data.error) << endl;
-    ss << "TTR: " << data.time_to_read << endl;
-
-    ss << "temperature:  " << data.temperature << endl;
-    ss << "pressure:     " << data.pressure << endl;
-    ss << "altitude:     " << data.altitude << endl;
-}
-
 }
 
 }

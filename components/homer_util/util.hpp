@@ -44,4 +44,15 @@ std::string uint64_to_bin(uint64_t n,
 
 void print_sensor_dump_header(std::stringstream& ss) noexcept;
 
+
+class Dumper
+{
+public:
+    virtual ~Dumper() = default;
+
+    virtual void dump(std::stringstream& ss) const noexcept = 0;
+
+    virtual bool has_data() const noexcept = 0;
+};
+
 }

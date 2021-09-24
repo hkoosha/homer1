@@ -50,10 +50,10 @@ SensorData Sensor::read_data() noexcept
 
     const auto has_error = this->error != ERROR_NONE;
     return SensorData{
-            .error = this->error,
-            .time_to_read = this->time_to_read,
-            .temperature = has_error ? std::numeric_limits<float>::quiet_NaN() : this->temperature,
-            .humidity = has_error ? std::numeric_limits<float>::quiet_NaN() : this->humidity,
+            this->error,
+            this->time_to_read,
+            has_error ? std::numeric_limits<float>::quiet_NaN() : this->temperature,
+            has_error ? std::numeric_limits<float>::quiet_NaN() : this->humidity,
     };
 }
 
@@ -99,27 +99,5 @@ void Sensor::refresh_data() noexcept
     this->last_update = now;
 }
 
-
-SensorData copy(const SensorData& data) noexcept
-{
-    return SensorData{
-            .error = data.error,
-            .time_to_read = data.time_to_read,
-            .temperature = data.temperature,
-            .humidity = data.humidity,
-    };
 }
-
-void dump(const SensorData& data,
-          std::stringstream& ss) noexcept
-{
-    ss << "ERR: " << uint64_to_bin(data.error) << endl;
-    ss << "TTR: " << data.time_to_read << endl;
-
-    ss << "temperature: " << data.temperature << endl;
-    ss << "humidity:    " << data.humidity << endl;
-}
-
-}
-
 }

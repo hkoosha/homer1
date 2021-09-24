@@ -26,10 +26,13 @@ struct SensorData final
     S8::SensorData s8;
     Sht3x::SensorData sht3x;
 
-    bool has_pms5003;
-    bool has_bmp180;
-    bool has_s8;
-    bool has_sht3x;
+    SensorData() noexcept:
+            pms5003{},
+            bmp180{},
+            s8{},
+            sht3x{}
+    {
+    }
 };
 
 struct SensorPeripheral final
@@ -45,33 +48,72 @@ struct Sensor final
     SensorData data;
     SensorPeripheral peripheral;
     SemaphoreHandle_t mutex;
+
+    void lock() noexcept
+    {
+        xSemaphoreTake(this->mutex, portMAX_DELAY);
+    }
+
+    void unlock() noexcept
+    {
+        xSemaphoreGive(this->mutex);
+    }
+
+    void update_s8() noexcept
+    {
+        const auto new_data = this->peripheral.s8.read_data();
+
+        this->lock();
+        this->data.s8 = new_data;
+        this->unlock();
+    }
+
+    void update_sht3x() noexcept
+    {
+        const auto new_data = this->peripheral.sht3x.read_data();
+
+        this->lock();
+        this->data.sht3x = new_data;
+        this->unlock();
+    }
+
+    void update_pms5003() noexcept
+    {
+        const auto new_data = this->peripheral.pms5003.read_data();
+
+        this->lock();
+        this->data.pms5003 = new_data;
+        this->unlock();
+    }
+
+    void update_bmp180() noexcept
+    {
+        Bmp180::SensorData new_data{};
+        if (this->peripheral.bmp180.is_initialized() || (this->peripheral.bmp180.init() == Bmp180::ERROR_NONE))
+            new_data = this->peripheral.bmp180.read_data();
+
+        this->lock();
+        this->data.bmp180 = new_data;
+        this->unlock();
+    }
+
+    void dump_all(std::stringstream& ss) noexcept
+    {
+        this->lock();
+        if (this->data.pms5003.has_data())
+            this->data.pms5003.dump(ss);
+        ss << std::endl;
+        if (this->data.bmp180.has_data())
+            this->data.bmp180.dump(ss);
+        ss << std::endl;
+        if (this->data.s8.has_data())
+            this->data.s8.dump(ss);
+        ss << std::endl;
+        if (this->data.sht3x.has_data())
+            this->data.sht3x.dump(ss);
+        this->unlock();
+    }
 };
-
-
-[[noreturn]] void work_read_all(void* arg)
-{
-    auto* sensor = static_cast<Sensor*>(arg);
-    do {
-        if (sensor->peripheral.bmp180.is_initialized() || (sensor->peripheral.bmp180.init() == Bmp180::ERROR_NONE)) {
-            sensor->data.bmp180 = sensor->peripheral.bmp180.read_data(Bmp180::SEA_LEVEL_PRESSURE);
-            sensor->data.has_bmp180 = true;
-        }
-        else {
-            sensor->data.has_bmp180 = false;
-        }
-
-        sensor->data.s8 = sensor->peripheral.s8.read_data();
-        sensor->data.has_s8 = true;
-
-        sensor->data.pms5003 = sensor->peripheral.pms5003.read_data();
-        sensor->data.has_pms5003 = true;
-
-        sensor->data.sht3x = sensor->peripheral.sht3x.read_data();
-        sensor->data.has_sht3x = true;
-
-        my_sleep_millis(MEASUREMENT_DELAY);
-    } while (true);
-}
 
 
 [[noreturn]] void work_read_s8(void* arg)
@@ -79,13 +121,7 @@ struct Sensor final
     auto* sensor = static_cast<Sensor*>(arg);
 
     do {
-        const auto data = sensor->peripheral.s8.read_data();
-
-        xSemaphoreTake(sensor->mutex, portMAX_DELAY);
-        sensor->data.s8 = data;
-        sensor->data.has_s8 = true;
-        xSemaphoreGive(sensor->mutex);
-
+        sensor->update_s8();
         my_sleep_millis(MEASUREMENT_DELAY);
     } while (true);
 }
@@ -95,13 +131,7 @@ struct Sensor final
     auto* sensor = static_cast<Sensor*>(arg);
 
     do {
-        const auto data = sensor->peripheral.sht3x.read_data();
-
-        xSemaphoreTake(sensor->mutex, portMAX_DELAY);
-        sensor->data.sht3x = data;
-        sensor->data.has_sht3x = true;
-        xSemaphoreGive(sensor->mutex);
-
+        sensor->update_sht3x();
         my_sleep_millis(MEASUREMENT_DELAY);
     } while (true);
 }
@@ -111,13 +141,7 @@ struct Sensor final
     auto* sensor = static_cast<Sensor*>(arg);
 
     do {
-        const auto data = sensor->peripheral.pms5003.read_data();
-
-        xSemaphoreTake(sensor->mutex, portMAX_DELAY);
-        sensor->data.pms5003 = data;
-        sensor->data.has_pms5003 = true;
-        xSemaphoreGive(sensor->mutex);
-
+        sensor->update_pms5003();
         my_sleep_millis(MEASUREMENT_DELAY);
     } while (true);
 }
@@ -127,60 +151,19 @@ struct Sensor final
     auto* sensor = static_cast<Sensor*>(arg);
 
     do {
-        bool has_data;
-        Bmp180::SensorData data{};
-
-        if (sensor->peripheral.bmp180.is_initialized() || (sensor->peripheral.bmp180.init() == Bmp180::ERROR_NONE)) {
-            data = sensor->peripheral.bmp180.read_data(Bmp180::SEA_LEVEL_PRESSURE);
-            has_data = true;
-        }
-        else {
-            has_data = false;
-        }
-
-        xSemaphoreTake(sensor->mutex, portMAX_DELAY);
-        sensor->data.bmp180 = data;
-        sensor->data.has_bmp180 = has_data;
-        xSemaphoreGive(sensor->mutex);
-
+        sensor->update_bmp180();
         my_sleep_millis(MEASUREMENT_DELAY);
     } while (true);
 }
 
-
 [[noreturn]] void work_dump_all(void* arg)
 {
     auto* sensor = static_cast<Sensor*>(arg);
-    do {
-        xSemaphoreTake(sensor->mutex, portMAX_DELAY);
-        const auto pms5003 = Pms5003::copy(sensor->data.pms5003);
-        const auto bmp180 = Bmp180::copy(sensor->data.bmp180);
-        const auto s8 = S8::copy(sensor->data.s8);
-        const auto sht3x = Sht3x::copy(sensor->data.sht3x);
-        const auto has_pms5003 = sensor->data.has_pms5003;
-        const auto has_bmp180 = sensor->data.has_bmp180;
-        const auto has_s8 = sensor->data.has_s8;
-        const auto has_sht3x = sensor->data.has_sht3x;
-        xSemaphoreGive(sensor->mutex);
 
+    do {
         std::stringstream ss;
         print_sensor_dump_header(ss);
-
-        if (has_bmp180)
-            Bmp180::dump(bmp180, ss);
-
-        ss << std::endl;
-        if (has_s8)
-            S8::dump(s8, ss);
-
-        ss << std::endl;
-        if (has_pms5003)
-            Pms5003::dump(pms5003, ss);
-
-        ss << std::endl;
-        if (has_sht3x)
-            Sht3x::dump(sht3x, ss);
-
+        sensor->dump_all(ss);
         std::cout << ss.str();
         my_sleep_millis(PRINT_DELAY);
     } while (true);
@@ -215,22 +198,10 @@ extern "C" void app_main(void)
             },
             .mutex{}
     };
-    sensor->data.has_bmp180 = false;
-    sensor->data.has_sht3x = false;
-    sensor->data.has_pms5003 = false;
-    sensor->data.has_s8 = false;
     sensor->mutex = xSemaphoreCreateMutex();
-    if(!sensor->mutex)
+    if (!sensor->mutex)
         throw std::runtime_error("could not allocate mutex");
 
-    // xTaskCreate(
-    //         work_read_all,
-    //         "work_read_all",
-    //         1024 * 5,
-    //         sensor,
-    //         10,
-    //         nullptr
-    // );
     xTaskCreate(
             work_read_bmp180,
             "work_read_bmp180",

@@ -184,50 +184,6 @@ bool Sensor::checksum_check() const noexcept
 }
 
 
-SensorData copy(const SensorData& data) noexcept
-{
-    return SensorData{
-            .error = data.error,
-            .time_to_read = data.time_to_read,
-            .pm10_standard = data.pm100_standard,
-            .pm25_standard = data.pm25_standard,
-            .pm100_standard = data.pm100_standard,
-            .pm10_env = data.pm100_env,
-            .pm25_env = data.pm25_env,
-            .pm100_env = data.pm100_env,
-            .particles_03 = data.particles_03,
-            .particles_05 = data.particles_05,
-            .particles_10 = data.particles_10,
-            .particles_25 = data.particles_25,
-            .particles_50 = data.particles_50,
-            .particles_100 = data.particles_100,
-    };
-}
-
-void dump(const SensorData& data,
-          std::stringstream& ss,
-          const bool includeStd) noexcept
-{
-    ss << "ERR: " << uint64_to_bin(data.error) << endl;
-    ss << "TTR: " << data.time_to_read << endl;
-
-    if (includeStd) {
-        ss << "STD PM10:  " << data.pm10_standard << endl;
-        ss << "STD PM25:  " << data.pm25_standard << endl;
-        ss << "STD PM100: " << data.pm100_standard << endl;
-    }
-
-    ss << "ENV PM10:  " << data.pm10_env << endl;
-    ss << "ENV PM25:  " << data.pm25_env << endl;
-    ss << "ENV PM100: " << data.pm100_env << endl;
-    ss << "PTC PM03:  " << data.particles_03 << endl;
-    ss << "PTC PM05:  " << data.particles_05 << endl;
-    ss << "PTC PM10:  " << data.particles_10 << endl;
-    ss << "PTC PM25:  " << data.particles_25 << endl;
-    ss << "PTC PM50:  " << data.particles_50 << endl;
-    ss << "PTC PM100: " << data.particles_100 << endl;
-}
-
 }
 
 }

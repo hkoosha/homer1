@@ -271,45 +271,5 @@ uint64_t Sensor::read_7_bytes() noexcept
     return ERROR_NONE;
 }
 
-
-// =============================================================================
-
-SensorData copy(const SensorData& data) noexcept
-{
-    return SensorData{
-            .error = data.error,
-            .time_to_read = data.time_to_read,
-            .sensor_id = data.sensor_id,
-            .co2 = data.co2,
-            .abc_days = data.abc_days,
-            .sensor_fw = data.sensor_fw,
-    };
 }
-
-void dump(const SensorData& data,
-          std::stringstream& ss) noexcept
-{
-    ss << "ERR: " << uint64_to_bin(data.error) << endl;
-    ss << "TTR: " << data.time_to_read << endl;
-
-    ss << "CO2: " << data.co2 << endl;
-
-    ss << "ABC: " << data.abc_days
-       << " (" << (data.abc_days / 24.) << " days)"
-       << endl;
-
-    ss << "SID: 0x" << std::uppercase << std::hex
-       << data.sensor_id
-       << std::dec << std::nouppercase
-       << endl;
-
-    ss << "SFW: 0x" << std::uppercase << std::hex
-       << data.sensor_fw
-       << std::dec << std::nouppercase
-       << " (" << data.sensor_fw << ")"
-       << endl;
-}
-
-}
-
 }
