@@ -23,8 +23,8 @@ const uint64_t ERROR_REFRESH_DATA = ERROR_DATA_NOT_AVAILABLE_YET << 1;
 const uint64_t ERROR_BAD_CRC_TEMPERATURE = ERROR_REFRESH_DATA << 1;
 const uint64_t ERROR_BAD_CRC_HUMIDITY = ERROR_BAD_CRC_TEMPERATURE << 1;
 
-const uint8_t ADDR_1 = 0x44;
-const uint32_t DELAY = 10;
+const uint8_t I2C_ADDR = 0x44;
+const uint32_t I2C_DELAY = 10;
 const uint64_t MEASUREMENT_GAP_MILLIS = 2000;
 
 struct SensorData final : public Dumper

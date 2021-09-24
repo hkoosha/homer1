@@ -192,8 +192,8 @@ extern "C" void app_main(void)
                     }}},
                     .sht3x {Sht3x::Sensor{i2c::Device{
                             I2C_NUM_1,
-                            Sht3x::ADDR_1,
-                            Sht3x::DELAY
+                            Sht3x::I2C_ADDR,
+                            Sht3x::I2C_DELAY
                     }}}
             },
             .mutex{}
