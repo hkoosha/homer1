@@ -2,6 +2,8 @@
 A project to read out these sensors connected to ESP32 and print over serial.
 ESP-IDF based.
 
+Want something proper? have a look at https://gitlab.com/UncleRus/esp-idf-lib
+
 
 ## Warning!
 - Not necessarily power consumption friendly.
