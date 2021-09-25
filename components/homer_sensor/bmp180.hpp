@@ -50,17 +50,6 @@ struct SensorData final : public Dumper
     {
     }
 
-    explicit SensorData(const uint64_t error,
-                        const uint64_t time_to_read,
-                        const uint32_t pressure,
-                        const float temperature) noexcept:
-            error{error},
-            time_to_read{time_to_read},
-            pressure{pressure},
-            temperature{temperature}
-    {
-    }
-
     void dump(std::stringstream& ss) const noexcept override
     {
         ss << "ERR: " << uint64_to_bin(this->error) << endl;

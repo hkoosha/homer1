@@ -65,37 +65,6 @@ struct SensorData final : public Dumper
     {
     }
 
-    explicit SensorData(const uint64_t error,
-                        const uint64_t time_to_read,
-                        const uint16_t pm10_std,
-                        const uint16_t pm25_std,
-                        const uint16_t pm100_std,
-                        const uint16_t pm10_env,
-                        const uint16_t pm25_env,
-                        const uint16_t pm100_env,
-                        const uint16_t particles_03,
-                        const uint16_t particles_05,
-                        const uint16_t particles_10,
-                        const uint16_t particles_25,
-                        const uint16_t particles_50,
-                        const uint16_t particles_100) noexcept:
-            error{error},
-            time_to_read{time_to_read},
-            pm10_standard{pm10_std},
-            pm25_standard{pm25_std},
-            pm100_standard{pm100_std},
-            pm10_env{pm10_env},
-            pm25_env{pm25_env},
-            pm100_env{pm100_env},
-            particles_03{particles_03},
-            particles_05{particles_05},
-            particles_10{particles_10},
-            particles_25{particles_25},
-            particles_50{particles_50},
-            particles_100{particles_100}
-    {
-    }
-
     void dump(std::stringstream& ss) const noexcept override
     {
         ss << "ERR: " << uint64_to_bin(this->error) << endl;
