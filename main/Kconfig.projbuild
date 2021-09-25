@@ -2,13 +2,13 @@ menu "Homer1 Configuration"
 
     config MY_WIFI_SSID
         string "WiFi SSID"
-        default "myssid"
+        default "some_ssid"
         help
             Wifi SSID
 
     config MY_WIFI_PASSWORD
         string "WiFi Password"
-        default "mypassword"
+        default "some_password"
         help
             Wifi Password
 
