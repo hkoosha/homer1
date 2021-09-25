@@ -32,7 +32,7 @@ static void my_wifi_event_handler(__attribute__((unused)) void* arg,
     else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         auto* event = (ip_event_got_ip_t*) event_data;
         ESP_LOGI(MY_WIFI_TAG, "got ip:"
-        IPSTR, IP2STR(&event->ip_info.ip));
+                IPSTR, IP2STR(&event->ip_info.ip));
     }
     else {
         ESP_LOGI(MY_WIFI_TAG, "unknown event");
@@ -100,7 +100,7 @@ void my_nvs_init()
 // ======================================================================== UART
 
 static const char* MY_UART_TAG = "my_uart";
-static const int MY_UART_BUFFER_SIZE = 1024 * 2;
+static const int MY_UART_BUFFER_SIZE = 1024;
 
 void my_uart_init_8n1(const uart_port_t uart_num,
                       const int tx_pin,
@@ -146,13 +146,12 @@ void my_uart_init_8n1(const uart_port_t uart_num,
 
 static const char* MY_I2C_TAG = "my_uart";
 
-
 void my_i2c_init(const i2c_port_t port,
                  const int sda_pin,
                  const int scl_pin,
                  const uint32_t clock_speed)
 {
-    ESP_LOGI(MY_I2C_TAG, "I2C sda=%d scl=%d", sda_pin, scl_pin);
+    ESP_LOGI(MY_I2C_TAG, "I2C num=%d sda=%d scl=%d clock=%d", port, sda_pin, scl_pin, clock_speed);
 
     i2c_config_t i2c_conf;
     std::memset(&i2c_conf, 0, sizeof(i2c_conf));
