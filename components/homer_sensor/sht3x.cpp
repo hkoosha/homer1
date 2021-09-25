@@ -91,7 +91,6 @@ void Sensor::refresh_data() noexcept
 
     const uint16_t t = (data[0] << 8) + data[1];
     const uint16_t h = (data[3] << 8) + data[4];
-    // ESP_LOG
 
     this->temperature = static_cast<float>(t * 0.00267033 - 45.);
     this->humidity = static_cast<float>(h * 0.0015259);
