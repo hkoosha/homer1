@@ -5,7 +5,7 @@
 #include <limits>
 
 #include "i2c.hpp"
-#include "util.hpp"
+#include "homer_util.hpp"
 
 using std::uint8_t;
 using std::uint16_t;

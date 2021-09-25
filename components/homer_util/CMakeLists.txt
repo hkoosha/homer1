@@ -1,7 +1,7 @@
 idf_component_register(
         SRCS
-            "util.cpp"
-            "util.hpp"
+            "homer_util.cpp"
+            "homer_util.hpp"
 
         INCLUDE_DIRS
             "."

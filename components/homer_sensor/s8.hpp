@@ -80,20 +80,20 @@ struct SensorData final : public Dumper
 
         ss << "CO2: " << this->co2 << endl;
 
-        ss << "ABC: " << this->abc_days
-           << " (" << (this->abc_days / 24.) << " days)"
-           << endl;
-
-        ss << "SID: 0x" << std::uppercase << std::hex
-           << this->sensor_id
-           << std::dec << std::nouppercase
-           << endl;
-
-        ss << "SFW: 0x" << std::uppercase << std::hex
-           << this->sensor_fw
-           << std::dec << std::nouppercase
-           << " (" << this->sensor_fw << ")"
-           << endl;
+        // ss << "ABC: " << this->abc_days
+        //    << " (" << (this->abc_days / 24.) << " days)"
+        //    << endl;
+        //
+        // ss << "SID: 0x" << std::uppercase << std::hex
+        //    << this->sensor_id
+        //    << std::dec << std::nouppercase
+        //    << endl;
+        //
+        // ss << "SFW: 0x" << std::uppercase << std::hex
+        //    << this->sensor_fw
+        //    << std::dec << std::nouppercase
+        //    << " (" << this->sensor_fw << ")"
+        //    << endl;
     }
 
     bool has_data() const noexcept override

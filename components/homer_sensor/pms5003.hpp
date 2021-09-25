@@ -6,7 +6,7 @@
 
 #include "esp_log.h"
 
-#include "util.hpp"
+#include "homer_util.hpp"
 
 using std::uint16_t;
 using std::uint32_t;

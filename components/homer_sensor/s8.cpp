@@ -5,7 +5,7 @@
 #include "esp_log.h"
 #include "driver/uart.h"
 
-#include "util.hpp"
+#include "homer_util.hpp"
 #include "s8.hpp"
 
 using std::size_t;

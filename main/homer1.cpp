@@ -4,7 +4,7 @@
 #include "esp_log.h"
 
 #include "my_init.hpp"
-#include "util.hpp"
+#include "homer_util.hpp"
 #include "s8.hpp"
 #include "pms5003.hpp"
 #include "bmp180.hpp"

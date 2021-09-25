@@ -5,7 +5,7 @@
 
 #include "esp_log.h"
 
-#include "util.hpp"
+#include "homer_util.hpp"
 #include "bmp180.hpp"
 
 using std::size_t;
