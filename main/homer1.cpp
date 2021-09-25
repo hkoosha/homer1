@@ -16,7 +16,7 @@ using std::uint32_t;
 
 static const char* MY_TAG = "homer1";
 static const uint32_t MEASUREMENT_DELAY = 1000;
-static const uint32_t PRINT_DELAY = 500;
+static const uint32_t PRINT_DELAY = 1000;
 
 
 struct SensorData final
@@ -43,21 +43,12 @@ struct SensorPeripheral final
     Sht3x::Sensor sht3x;
 };
 
-struct Sensor final
+class Sensor final
 {
+public:
     SensorData data;
     SensorPeripheral peripheral;
     SemaphoreHandle_t mutex;
-
-    void lock() noexcept
-    {
-        xSemaphoreTake(this->mutex, portMAX_DELAY);
-    }
-
-    void unlock() noexcept
-    {
-        xSemaphoreGive(this->mutex);
-    }
 
     void update_s8() noexcept
     {
@@ -100,18 +91,34 @@ struct Sensor final
     void dump_all(std::stringstream& ss) noexcept
     {
         this->lock();
-        if (this->data.pms5003.has_data())
+        if (this->data.pms5003.has_data()) {
+            ss << "[PMS5003]" << std::endl;
             this->data.pms5003.dump(ss);
-        ss << std::endl;
-        if (this->data.bmp180.has_data())
+        }
+        if (this->data.bmp180.has_data()) {
+            ss << std::endl << "[BMP180]" << std::endl;
             this->data.bmp180.dump(ss);
-        ss << std::endl;
-        if (this->data.s8.has_data())
+        }
+        if (this->data.s8.has_data()) {
+            ss << std::endl << "[S8]" << std::endl;
             this->data.s8.dump(ss);
-        ss << std::endl;
-        if (this->data.sht3x.has_data())
+        }
+        if (this->data.sht3x.has_data()) {
+            ss << std::endl << "[SHT3X]" << std::endl;
             this->data.sht3x.dump(ss);
+        }
         this->unlock();
+    }
+
+private:
+    void lock() noexcept
+    {
+        xSemaphoreTake(this->mutex, portMAX_DELAY);
+    }
+
+    void unlock() noexcept
+    {
+        xSemaphoreGive(this->mutex);
     }
 };
 
@@ -199,8 +206,10 @@ extern "C" void app_main(void)
             .mutex{}
     };
     sensor->mutex = xSemaphoreCreateMutex();
-    if (!sensor->mutex)
+    if (!sensor->mutex) {
+        ESP_LOGE(MY_TAG, "could not allocate mutex");
         throw std::runtime_error("could not allocate mutex");
+    }
 
     xTaskCreate(
             work_read_bmp180,

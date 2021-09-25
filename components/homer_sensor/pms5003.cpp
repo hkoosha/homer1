@@ -35,8 +35,10 @@ Sensor::Sensor(const uart_port_t port) :
         port{port}
 {
     this->uart_buffer = new uint8_t[32];
-    if (!this->uart_buffer)
+    if (!this->uart_buffer) {
+        ESP_LOGE(TAG, "could not allocate buffer");
         throw std::runtime_error("could not allocate buffer");
+    }
 }
 
 Sensor::~Sensor() noexcept

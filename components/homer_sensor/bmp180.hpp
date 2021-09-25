@@ -40,14 +40,12 @@ struct SensorData final : public Dumper
     uint64_t error;
     uint64_t time_to_read;
     uint32_t pressure;
-    float altitude;
     float temperature;
 
     explicit SensorData() noexcept:
             error{ERROR_DATA_NOT_AVAILABLE},
             time_to_read{std::numeric_limits<uint64_t>::max()},
             pressure{std::numeric_limits<uint32_t>::max()},
-            altitude{std::numeric_limits<float>::quiet_NaN()},
             temperature{std::numeric_limits<float>::quiet_NaN()}
     {
     }
@@ -55,12 +53,10 @@ struct SensorData final : public Dumper
     explicit SensorData(const uint64_t error,
                         const uint64_t time_to_read,
                         const uint32_t pressure,
-                        const float altitude,
                         const float temperature) noexcept:
             error{error},
             time_to_read{time_to_read},
             pressure{pressure},
-            altitude{altitude},
             temperature{temperature}
     {
     }
@@ -71,7 +67,6 @@ struct SensorData final : public Dumper
         ss << "TTR: " << this->time_to_read << endl;
         ss << "temperature:  " << this->temperature << endl;
         ss << "pressure:     " << this->pressure << endl;
-        ss << "altitude:     " << this->altitude << endl;
     }
 
     bool has_data() const noexcept override
@@ -105,10 +100,6 @@ public:
     SensorData read_data(uint32_t reference_pressure = SEA_LEVEL_PRESSURE) const;
 
 private:
-
-    static void read_altitude(uint32_t reference_pressure,
-                              uint32_t absolute_pressure,
-                              float& altitude) noexcept;
 
     static void read_temperature(int32_t b5,
                                  float& temperature) noexcept;

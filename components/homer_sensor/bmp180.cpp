@@ -73,7 +73,6 @@ SensorData Sensor::read_data(const uint32_t reference_pressure) const
     }
 
     Sensor::read_temperature(b5, data.temperature);
-    Sensor::read_altitude(reference_pressure, data.pressure, data.altitude);
 
     if (reference_pressure > 0) {
         data.error = this->read_pressure(b5, data.pressure);
@@ -88,14 +87,6 @@ SensorData Sensor::read_data(const uint32_t reference_pressure) const
 
     data.time_to_read = now_millis() - then;
     return data;
-}
-
-void Sensor::read_altitude(const uint32_t reference_pressure,
-                           const uint32_t absolute_pressure,
-                           float& altitude) noexcept
-{
-    const auto x = static_cast<float>(absolute_pressure) / static_cast<float>(reference_pressure);
-    altitude = static_cast<float>(44330 * (1.0 - powf(x, 0.190295)));
 }
 
 void Sensor::read_temperature(const int32_t b5,
@@ -194,8 +185,10 @@ uint64_t Sensor::calculate_b5(int32_t& b5) const noexcept
 
 uint64_t Sensor::init()
 {
-    if (this->initialized)
+    if (this->initialized) {
+        ESP_LOGE(TAG, "BMP180 already initialized");
         throw std::runtime_error("BMP180 already initialized");
+    }
 
     uint64_t err;
 

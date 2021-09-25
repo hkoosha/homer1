@@ -62,8 +62,10 @@ Sensor::Sensor(const uart_port_t port) :
         port{port}
 {
     this->uart_buffer = new uint8_t[8];
-    if (!this->uart_buffer)
+    if (!this->uart_buffer) {
+        ESP_LOGE(TAG, "could not allocate buffer");
         throw std::runtime_error("could not allocate buffer");
+    }
 }
 
 Sensor::~Sensor() noexcept
@@ -143,7 +145,7 @@ SensorData Sensor::read_data() noexcept
 
     err = this->read_co2(data.co2);
     data.error |= err;
-    if(err != ERROR_NONE) {
+    if (err != ERROR_NONE) {
         this->abc_days = 0;
         this->sensor_fw = 0;
         this->sensor_id = 0;

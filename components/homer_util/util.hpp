@@ -14,6 +14,7 @@ using std::size_t;
 using std::uint32_t;
 using std::uint64_t;
 
+
 namespace homer1 {
 
 inline void my_sleep_ticks(const size_t ticks) noexcept
