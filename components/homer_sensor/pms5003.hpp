@@ -47,6 +47,7 @@ struct SensorData final : public Dumper
     uint16_t particles_50;
     uint16_t particles_100;
 
+
     explicit SensorData() noexcept:
             error{ERROR_NO_DATA_AVAILABLE},
             time_to_read{std::numeric_limits<uint64_t>::max()},
@@ -64,6 +65,7 @@ struct SensorData final : public Dumper
             particles_100{std::numeric_limits<uint16_t>::max()}
     {
     }
+
 
     void dump(std::stringstream& ss) const noexcept override
     {

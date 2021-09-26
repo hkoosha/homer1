@@ -22,12 +22,23 @@ const uint32_t MEASUREMENT_DELAY = 1000;
 const uint32_t PRINT_DELAY = 1000;
 
 
-struct SensorData final
+class SensorData final
 {
+public:
+
     Pms5003::SensorData pms5003;
     Bmp180::SensorData bmp180;
     S8::SensorData s8;
     Sht3x::SensorData sht3x;
+
+
+    SensorData(const SensorData& other) = delete;
+
+    SensorData& operator=(const SensorData& other) = delete;
+
+    SensorData& operator=(SensorData&& other) = delete;
+
+    SensorData(SensorData&& other) = delete;
 
     SensorData() noexcept:
             pms5003{},
@@ -38,12 +49,22 @@ struct SensorData final
     }
 };
 
-struct SensorPeripheral final
+class SensorPeripheral final
 {
+public:
+
     S8::Sensor s8;
     Pms5003::Sensor pms5003;
     Bmp180::Sensor bmp180;
     Sht3x::Sensor sht3x;
+
+    SensorPeripheral(const SensorPeripheral& other) = delete;
+
+    SensorPeripheral& operator=(const SensorPeripheral& other) = delete;
+
+    SensorPeripheral& operator=(SensorPeripheral&& other) = delete;
+
+    SensorPeripheral(SensorPeripheral&& other) = delete;
 };
 
 class Sensor final
@@ -53,6 +74,16 @@ public:
     SensorPeripheral peripheral;
     SemaphoreHandle_t mutex;
     volatile bool loop;
+
+
+    Sensor(const Sensor& other) = delete;
+
+    Sensor& operator=(const Sensor& other) = delete;
+
+    Sensor& operator=(Sensor&& other) = delete;
+
+    Sensor(Sensor&& other) = delete;
+
 
     void update_s8() noexcept
     {
