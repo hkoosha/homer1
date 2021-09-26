@@ -14,9 +14,12 @@ using namespace homer1;
 
 using std::uint32_t;
 
-static const char* MY_TAG = "homer1";
-static const uint32_t MEASUREMENT_DELAY = 1000;
-static const uint32_t PRINT_DELAY = 1000;
+
+namespace {
+
+const char* MY_TAG = "homer1";
+const uint32_t MEASUREMENT_DELAY = 1000;
+const uint32_t PRINT_DELAY = 1000;
 
 
 struct SensorData final
@@ -49,6 +52,7 @@ public:
     SensorData data;
     SensorPeripheral peripheral;
     SemaphoreHandle_t mutex;
+    volatile bool loop;
 
     void update_s8() noexcept
     {
@@ -123,70 +127,8 @@ private:
 };
 
 
-[[noreturn]] void work_read_s8(void* arg)
+Sensor* make_sensor()
 {
-    auto* sensor = static_cast<Sensor*>(arg);
-
-    do {
-        sensor->update_s8();
-        my_sleep_millis(MEASUREMENT_DELAY);
-    } while (true);
-}
-
-[[noreturn]] void work_read_sht3x(void* arg)
-{
-    auto* sensor = static_cast<Sensor*>(arg);
-
-    do {
-        sensor->update_sht3x();
-        my_sleep_millis(MEASUREMENT_DELAY);
-    } while (true);
-}
-
-[[noreturn]] void work_read_pms5003(void* arg)
-{
-    auto* sensor = static_cast<Sensor*>(arg);
-
-    do {
-        sensor->update_pms5003();
-        my_sleep_millis(MEASUREMENT_DELAY);
-    } while (true);
-}
-
-[[noreturn]] void work_read_bmp180(void* arg)
-{
-    auto* sensor = static_cast<Sensor*>(arg);
-
-    do {
-        sensor->update_bmp180();
-        my_sleep_millis(MEASUREMENT_DELAY);
-    } while (true);
-}
-
-[[noreturn]] void work_dump_all(void* arg)
-{
-    auto* sensor = static_cast<Sensor*>(arg);
-
-    do {
-        std::stringstream ss;
-        print_sensor_dump_header(ss);
-        sensor->dump_all(ss);
-        std::cout << ss.str();
-        my_sleep_millis(PRINT_DELAY);
-    } while (true);
-}
-
-
-extern "C" void app_main(void)
-{
-    ESP_LOGI(MY_TAG, "init...");
-    my_nvs_init();
-    // my_wifi_init(CONFIG_MY_WIFI_SSID, CONFIG_MY_WIFI_PASSWORD);
-    my_uart_init_8n1(UART_NUM_1, 25, 26);
-    my_uart_init_8n1(UART_NUM_2, 13, 27);
-    my_i2c_init(I2C_NUM_0, 33, 32);
-    my_i2c_init(I2C_NUM_1, 17, 18);
-
     auto sensor = new Sensor{
             .data{},
             .peripheral{
@@ -203,7 +145,8 @@ extern "C" void app_main(void)
                             Sht3x::I2C_DELAY
                     }}}
             },
-            .mutex{}
+            .mutex{},
+            .loop = true,
     };
     sensor->mutex = xSemaphoreCreateMutex();
     if (!sensor->mutex) {
@@ -211,8 +154,19 @@ extern "C" void app_main(void)
         throw std::runtime_error("could not allocate mutex");
     }
 
+    return sensor;
+}
+
+void read_sensors(Sensor* sensor) noexcept
+{
     xTaskCreate(
-            work_read_bmp180,
+            [](void* arg) {
+                auto* sensor0 = static_cast<Sensor*>(arg);
+                do {
+                    sensor0->update_bmp180();
+                    my_sleep_millis(MEASUREMENT_DELAY);
+                } while (sensor0->loop);
+            },
             "work_read_bmp180",
             1024 * 3,
             sensor,
@@ -220,7 +174,13 @@ extern "C" void app_main(void)
             nullptr
     );
     xTaskCreate(
-            work_read_pms5003,
+            [](void* arg) {
+                auto* sensor0 = static_cast<Sensor*>(arg);
+                do {
+                    sensor0->update_pms5003();
+                    my_sleep_millis(MEASUREMENT_DELAY);
+                } while (sensor0->loop);
+            },
             "work_read_pms5003",
             1024,
             sensor,
@@ -228,7 +188,14 @@ extern "C" void app_main(void)
             nullptr
     );
     xTaskCreate(
-            work_read_s8,
+            // work_read_s8,
+            [](void* arg) {
+                auto* sensor0 = static_cast<Sensor*>(arg);
+                do {
+                    sensor0->update_s8();
+                    my_sleep_millis(MEASUREMENT_DELAY);
+                } while (sensor0->loop);
+            },
             "work_read_s8",
             1024,
             sensor,
@@ -236,19 +203,56 @@ extern "C" void app_main(void)
             nullptr
     );
     xTaskCreate(
-            work_read_sht3x,
+            [](void* arg) {
+                auto* sensor0 = static_cast<Sensor*>(arg);
+                do {
+                    sensor0->update_sht3x();
+                    my_sleep_millis(MEASUREMENT_DELAY);
+                } while (sensor0->loop);
+            },
             "work_read_sht3x",
             1024,
             sensor,
             10,
             nullptr
     );
+}
+
+void dump_sensors(Sensor* sensor) noexcept
+{
     xTaskCreate(
-            work_dump_all,
+            [](void* arg) {
+                auto* sensor0 = static_cast<Sensor*>(arg);
+                do {
+                    std::stringstream ss;
+                    print_sensor_dump_header(ss);
+                    sensor0->dump_all(ss);
+                    std::cout << ss.str();
+                    my_sleep_millis(PRINT_DELAY);
+                } while (sensor0->loop);
+            },
             "work_dump_all",
             1024 * 4,
             sensor,
             10,
             nullptr
     );
+}
+
+}
+
+extern "C" void app_main(void)
+{
+    ESP_LOGI(MY_TAG, "init...");
+    my_nvs_init();
+    // my_wifi_init(CONFIG_MY_WIFI_SSID, CONFIG_MY_WIFI_PASSWORD);
+    my_uart_init_8n1(UART_NUM_1, 25, 26);
+    my_uart_init_8n1(UART_NUM_2, 13, 27);
+    my_i2c_init(I2C_NUM_0, 33, 32);
+    my_i2c_init(I2C_NUM_1, 17, 18);
+
+    auto sensor = make_sensor();
+
+    read_sensors(sensor);
+    dump_sensors(sensor);
 }

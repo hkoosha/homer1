@@ -2,8 +2,6 @@
 #include <iostream>
 #include <limits>
 
-#include "esp_log.h"
-
 #include "sht3x.hpp"
 #include "i2c.hpp"
 #include "homer_util.hpp"
@@ -40,7 +38,7 @@ bool crc_matches(const uint8_t msb,
 
 namespace Sht3x {
 
-Sensor::Sensor(i2c::Device i2c) noexcept:
+Sensor::Sensor(const i2c::Device i2c) noexcept:
         i2c{i2c}
 {
 }
