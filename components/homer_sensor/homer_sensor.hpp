@@ -15,6 +15,8 @@ namespace homer1 {
 const char* const SENSOR_ATTR_TIME_TO_READ = "TTR";
 const char* const SENSOR_ATTR_SENSOR_ERR = "sensor_err";
 const char* const SENSOR_ATTR_HW_ERR = "hw_err";
+const char* const SENSOR_ATTR_SENSOR_ERR_MSG = "sensor_err_msg";
+const char* const SENSOR_ATTR_HW_ERR_MSG = "hw_err_msg";
 
 const char* const EMPTY = "";
 
@@ -27,6 +29,13 @@ inline void insert(HomerSensorDump& map,
                    const V& value) noexcept
 {
     map.insert({name, std::to_string(value)});
+}
+
+inline void insert_char(HomerSensorDump& map,
+                        const char* name,
+                        const char* value) noexcept
+{
+    map.insert({name, value});
 }
 
 template<typename DATA>
@@ -56,9 +65,9 @@ public:
     HwErr& _get_error() noexcept;
 
 
-    const char* hw_err_to_str(const HwErr* err = nullptr) noexcept;
+    const char* hw_err_to_str(const HwErr* err = nullptr) const noexcept;
 
-    const char* sensor_err_to_str(const HwErr* err = nullptr) noexcept;
+    const char* sensor_err_to_str(const HwErr* err = nullptr) const noexcept;
 
 
 protected:

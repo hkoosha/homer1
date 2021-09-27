@@ -123,7 +123,8 @@ public:
         this->unlock();
     }
 
-    void dump_all(std::stringstream& ss) noexcept
+
+    void dump_pretty_print(std::stringstream& ss) noexcept
     {
         this->lock();
 
@@ -165,6 +166,41 @@ public:
 
         this->unlock();
     }
+
+    void dump_map(std::stringstream& ss) noexcept
+    {
+        this->lock();
+        HomerSensorDump pms5003_dump = this->data.pms5003.get_error().is_ok()
+                                       ? this->data.pms5003.dump()
+                                       : HomerSensorDump{};
+        HomerSensorDump bmp180_dump = this->data.bmp180.get_error().is_ok()
+                                      ? this->data.bmp180.dump()
+                                      : HomerSensorDump{};
+        HomerSensorDump s8_dump = this->data.s8.get_error().is_ok()
+                                  ? this->data.s8.dump()
+                                  : HomerSensorDump{};
+        HomerSensorDump sht3x_dump = this->data.sht3x.get_error().is_ok()
+                                     ? this->data.sht3x.dump()
+                                     : HomerSensorDump{};
+        this->unlock();
+
+        ss << "[PMS5003]" << std::endl;
+        for (const auto& item: pms5003_dump)
+            ss << item.first << "=" << item.second << std::endl;
+
+        ss << "[BMP180]" << std::endl;
+        for (const auto& item: bmp180_dump)
+            ss << item.first << "=" << item.second << std::endl;
+
+        ss << "[S8]" << std::endl;
+        for (const auto& item: s8_dump)
+            ss << item.first << "=" << item.second << std::endl;
+
+        ss << "[SHT3X]" << std::endl;
+        for (const auto& item: sht3x_dump)
+            ss << item.first << "=" << item.second << std::endl;
+    }
+
 
 private:
     void lock() noexcept
@@ -289,7 +325,7 @@ void dump_sensors(Sensor* sensor) noexcept
                 do {
                     std::stringstream ss;
                     print_sensor_dump_header(ss);
-                    sensor0->dump_all(ss);
+                    sensor0->dump_map(ss);
                     std::cout << ss.str();
                     my_sleep_millis(PRINT_DELAY);
                 } while (sensor0->loop);

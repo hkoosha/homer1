@@ -33,6 +33,8 @@ HomerSensorDump HomerSensorData::dump() const noexcept
     insert(map, SENSOR_ATTR_HW_ERR, this->error.hardware_err());
     insert(map, SENSOR_ATTR_SENSOR_ERR, this->error.sensor_err());
     insert(map, SENSOR_ATTR_TIME_TO_READ, this->time_to_read);
+    insert_char(map, SENSOR_ATTR_SENSOR_ERR_MSG, this->hw_err_to_str());
+    insert_char(map, SENSOR_ATTR_HW_ERR_MSG, this->sensor_err_to_str());
 
     if (this->error.is_ok())
         this->do_dump(map);
@@ -68,7 +70,7 @@ const char* HomerSensorData::do_hw_err_to_str(esp_err_t err) const noexcept
     return esp_err_to_name(err);
 }
 
-const char* HomerSensorData::hw_err_to_str(const HwErr* err) noexcept
+const char* HomerSensorData::hw_err_to_str(const HwErr* err) const noexcept
 {
     if (err == nullptr)
         err = &this->get_error();
@@ -77,7 +79,7 @@ const char* HomerSensorData::hw_err_to_str(const HwErr* err) noexcept
     return msg == nullptr ? EMPTY : msg;
 }
 
-const char* HomerSensorData::sensor_err_to_str(const HwErr* err) noexcept
+const char* HomerSensorData::sensor_err_to_str(const HwErr* err) const noexcept
 {
     if (err == nullptr)
         err = &this->get_error();
