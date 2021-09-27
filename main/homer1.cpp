@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdint>
+#include <map>
 
 #include "esp_log.h"
 
@@ -25,7 +26,6 @@ const uint32_t PRINT_DELAY = 1000;
 class SensorData final
 {
 public:
-
     Pms5003::SensorData pms5003;
     Bmp180::SensorData bmp180;
     S8::SensorData s8;
@@ -52,7 +52,6 @@ public:
 class SensorPeripheral final
 {
 public:
-
     S8::Sensor s8;
     Pms5003::Sensor pms5003;
     Bmp180::Sensor bmp180;
@@ -75,7 +74,6 @@ public:
     SemaphoreHandle_t mutex;
     volatile bool loop;
 
-
     Sensor(const Sensor& other) = delete;
 
     Sensor& operator=(const Sensor& other) = delete;
@@ -87,7 +85,7 @@ public:
 
     void update_s8() noexcept
     {
-        const auto new_data = this->peripheral.s8.read_data();
+        const auto& new_data = this->peripheral.s8.read_data();
 
         this->lock();
         this->data.s8 = new_data;
@@ -115,7 +113,7 @@ public:
     void update_bmp180() noexcept
     {
         Bmp180::SensorData new_data{};
-        if (this->peripheral.bmp180.is_initialized() || (this->peripheral.bmp180.init() == Bmp180::ERROR_NONE))
+        if (this->peripheral.bmp180.is_initialized() || this->peripheral.bmp180.init().is_ok())
             new_data = this->peripheral.bmp180.read_data();
 
         this->lock();
@@ -126,19 +124,19 @@ public:
     void dump_all(std::stringstream& ss) noexcept
     {
         this->lock();
-        if (this->data.pms5003.has_data()) {
+        if (this->data.pms5003.get_error().is_ok()) {
             ss << "[PMS5003]" << std::endl;
             this->data.pms5003.dump(ss);
         }
-        if (this->data.bmp180.has_data()) {
+        if (this->data.bmp180.get_error().is_ok()) {
             ss << std::endl << "[BMP180]" << std::endl;
             this->data.bmp180.dump(ss);
         }
-        if (this->data.s8.has_data()) {
+        if (this->data.s8.get_error().is_ok()) {
             ss << std::endl << "[S8]" << std::endl;
             this->data.s8.dump(ss);
         }
-        if (this->data.sht3x.has_data()) {
+        if (this->data.sht3x.get_error().is_ok()) {
             ss << std::endl << "[SHT3X]" << std::endl;
             this->data.sht3x.dump(ss);
         }
@@ -165,16 +163,22 @@ Sensor* make_sensor()
             .peripheral{
                     .s8 {S8::Sensor{UART_NUM_2}},
                     .pms5003 {Pms5003::Sensor{UART_NUM_1}},
-                    .bmp180 {Bmp180::Sensor{i2c::Device{
-                            I2C_NUM_0,
-                            Bmp180::I2C_ADDR,
-                            Bmp180::I2C_DELAY
-                    }}},
-                    .sht3x {Sht3x::Sensor{i2c::Device{
-                            I2C_NUM_1,
-                            Sht3x::I2C_ADDR,
-                            Sht3x::I2C_DELAY
-                    }}}
+                    .bmp180 {Bmp180::Sensor{
+                            i2c::Device{
+                                    I2C_NUM_0,
+                                    Bmp180::I2C_ADDR,
+                                    Bmp180::I2C_DELAY
+                            },
+                            Bmp180::SEA_LEVEL_PRESSURE,
+                            Bmp180::OVERSAMPLING_ULTRA_HIGH_RES
+                    }},
+                    .sht3x {Sht3x::Sensor{
+                            i2c::Device{
+                                    I2C_NUM_1,
+                                    Sht3x::I2C_ADDR,
+                                    Sht3x::I2C_DELAY
+                            }
+                    }}
             },
             .mutex{},
             .loop = true,
@@ -190,6 +194,20 @@ Sensor* make_sensor()
 
 void read_sensors(Sensor* sensor) noexcept
 {
+    xTaskCreate(
+            [](void* arg) {
+                auto* sensor0 = static_cast<Sensor*>(arg);
+                do {
+                    sensor0->update_s8();
+                    my_sleep_millis(MEASUREMENT_DELAY);
+                } while (sensor0->loop);
+            },
+            "work_read_s8",
+            1024 * 5,
+            sensor,
+            10,
+            nullptr
+    );
     xTaskCreate(
             [](void* arg) {
                 auto* sensor0 = static_cast<Sensor*>(arg);
@@ -213,22 +231,7 @@ void read_sensors(Sensor* sensor) noexcept
                 } while (sensor0->loop);
             },
             "work_read_pms5003",
-            1024,
-            sensor,
-            10,
-            nullptr
-    );
-    xTaskCreate(
-            // work_read_s8,
-            [](void* arg) {
-                auto* sensor0 = static_cast<Sensor*>(arg);
-                do {
-                    sensor0->update_s8();
-                    my_sleep_millis(MEASUREMENT_DELAY);
-                } while (sensor0->loop);
-            },
-            "work_read_s8",
-            1024,
+            1024 * 3,
             sensor,
             10,
             nullptr
@@ -242,7 +245,7 @@ void read_sensors(Sensor* sensor) noexcept
                 } while (sensor0->loop);
             },
             "work_read_sht3x",
-            1024,
+            1024 * 5,
             sensor,
             10,
             nullptr

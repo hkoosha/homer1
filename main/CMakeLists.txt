@@ -10,6 +10,7 @@ idf_component_register(
 
         REQUIRES
             homer_sensor
+            homer_sensors
             homer_util
             nvs_flash
 )
