@@ -29,10 +29,11 @@ HomerSensorDump HomerSensorData::dump() const noexcept
 {
     auto map = HomerSensorDump{};
 
-    insert(map, SENSOR_ATTR_TIME_TO_READ, this->time_to_read);
+    if (this->time_to_read != std::numeric_limits<uint64_t>::max())
+        insert(map, SENSOR_ATTR_TIME_TO_READ, this->time_to_read);
+
     insert(map, SENSOR_ATTR_HW_ERR, this->error.hardware_err());
     insert(map, SENSOR_ATTR_SENSOR_ERR, this->error.sensor_err());
-    insert(map, SENSOR_ATTR_TIME_TO_READ, this->time_to_read);
     insert_char(map, SENSOR_ATTR_SENSOR_ERR_MSG, this->hw_err_to_str());
     insert_char(map, SENSOR_ATTR_HW_ERR_MSG, this->sensor_err_to_str());
 

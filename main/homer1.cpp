@@ -170,18 +170,10 @@ public:
     void dump_map(std::stringstream& ss) noexcept
     {
         this->lock();
-        HomerSensorDump pms5003_dump = this->data.pms5003.get_error().is_ok()
-                                       ? this->data.pms5003.dump()
-                                       : HomerSensorDump{};
-        HomerSensorDump bmp180_dump = this->data.bmp180.get_error().is_ok()
-                                      ? this->data.bmp180.dump()
-                                      : HomerSensorDump{};
-        HomerSensorDump s8_dump = this->data.s8.get_error().is_ok()
-                                  ? this->data.s8.dump()
-                                  : HomerSensorDump{};
-        HomerSensorDump sht3x_dump = this->data.sht3x.get_error().is_ok()
-                                     ? this->data.sht3x.dump()
-                                     : HomerSensorDump{};
+        HomerSensorDump pms5003_dump = this->data.pms5003.dump();
+        HomerSensorDump bmp180_dump = this->data.bmp180.dump();
+        HomerSensorDump s8_dump = this->data.s8.dump();
+        HomerSensorDump sht3x_dump = this->data.sht3x.dump();
         this->unlock();
 
         ss << "[PMS5003]" << std::endl;
