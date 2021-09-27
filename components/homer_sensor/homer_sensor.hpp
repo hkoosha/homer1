@@ -2,7 +2,7 @@
 
 #include <limits>
 #include <cstdint>
-#include <map>
+#include <unordered_map>
 #include <string>
 
 #include "homer_util.hpp"
@@ -12,7 +12,22 @@ using std::uint64_t;
 
 namespace homer1 {
 
-using HomerSensorDump = std::map<const char*, std::string>;
+const char* const SENSOR_ATTR_TIME_TO_READ = "TTR";
+const char* const SENSOR_ATTR_SENSOR_ERR = "sensor_err";
+const char* const SENSOR_ATTR_HW_ERR = "hw_err";
+
+const char* const EMPTY = "";
+
+using HomerSensorDump = std::unordered_map<const char*, std::string>;
+
+// Because clion goes crazy if I make this insert call on site.
+template<typename V>
+inline void insert(HomerSensorDump& map,
+                   const char* name,
+                   const V& value) noexcept
+{
+    map.insert({name, std::to_string(value)});
+}
 
 template<typename DATA>
 class HomerSensor;
@@ -41,12 +56,39 @@ public:
     HwErr& _get_error() noexcept;
 
 
+    const char* hw_err_to_str(const HwErr* err = nullptr) noexcept
+    {
+        if (err == nullptr)
+            err = &this->get_error();
+
+        const auto msg = this->do_hw_err_to_str(err->hardware_err());
+        return msg == nullptr ? EMPTY : msg;
+    }
+
+    const char* sensor_err_to_str(const HwErr* err = nullptr) noexcept
+    {
+        if (err == nullptr)
+            err = &this->get_error();
+
+        if (err->sensor_err() == ERROR_NONE || err->sensor_err() == ERROR_NO_DATA_AVAILABLE)
+            return ::homer1::err_to_string(err->sensor_err());
+
+        const auto msg = this->do_sensor_err_to_str(err->sensor_err());
+        return msg == nullptr ? EMPTY : msg;
+    }
+
+
 protected:
     HomerSensorData() noexcept;
 
     virtual void do_dump(HomerSensorDump& map) const noexcept = 0;
 
     virtual void do_dump(std::stringstream& ss) const noexcept = 0;
+
+    virtual const char* do_hw_err_to_str(esp_err_t err) const noexcept;
+
+    virtual const char* do_sensor_err_to_str(uint64_t err) const noexcept = 0;
+
 
     virtual void invalidate() noexcept = 0;
 

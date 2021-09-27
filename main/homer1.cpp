@@ -126,22 +126,43 @@ public:
     void dump_all(std::stringstream& ss) noexcept
     {
         this->lock();
+
+        ss << "[PMS5003]" << std::endl;
         if (this->data.pms5003.get_error().is_ok()) {
-            ss << "[PMS5003]" << std::endl;
             this->data.pms5003.dump(ss);
         }
+        else {
+            ss << "HW: " << this->data.pms5003.hw_err_to_str() << std::endl;
+            ss << "SN: " << this->data.pms5003.sensor_err_to_str() << std::endl;
+        }
+
+        ss << std::endl << "[BMP180]" << std::endl;
         if (this->data.bmp180.get_error().is_ok()) {
-            ss << std::endl << "[BMP180]" << std::endl;
             this->data.bmp180.dump(ss);
         }
+        else {
+            ss << "HW: " << this->data.bmp180.hw_err_to_str() << std::endl;
+            ss << "SN: " << this->data.bmp180.sensor_err_to_str() << std::endl;
+        }
+
+        ss << std::endl << "[S8]" << std::endl;
         if (this->data.s8.get_error().is_ok()) {
-            ss << std::endl << "[S8]" << std::endl;
             this->data.s8.dump(ss);
         }
+        else {
+            ss << "HW: " << this->data.s8.hw_err_to_str() << std::endl;
+            ss << "SN: " << this->data.s8.sensor_err_to_str() << std::endl;
+        }
+
+        ss << std::endl << "[SHT3X]" << std::endl;
         if (this->data.sht3x.get_error().is_ok()) {
-            ss << std::endl << "[SHT3X]" << std::endl;
             this->data.sht3x.dump(ss);
         }
+        else {
+            ss << "HW: " << this->data.sht3x.hw_err_to_str() << std::endl;
+            ss << "SN: " << this->data.sht3x.sensor_err_to_str() << std::endl;
+        }
+
         this->unlock();
     }
 

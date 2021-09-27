@@ -30,6 +30,33 @@ const auto MAGIC1 = 0x4D;
 
 namespace Pms5003 {
 
+const char* err_to_string(const uint64_t err) noexcept
+{
+    switch (err) {
+        case ERROR_UART_READ:
+            return "uart_read";
+
+        case ERROR_UART_BUFFER_FLUSH:
+            return "uart_buffer_flush";
+
+        case ERROR_READ_ATTEMPTS_EXHAUSTED:
+            return "read_attempts_exhausted";
+
+        case ERROR_BAD_MAGIC_VALUE:
+            return "bad_magic_value";
+
+        case ERROR_BAD_CHECKSUM:
+            return "bad_checksum";
+
+        default:
+            return nullptr;
+    }
+}
+
+}
+
+namespace Pms5003 {
+
 SensorData& SensorData::operator=(const SensorData& other) noexcept
 {
     if (this == &other)
@@ -112,7 +139,31 @@ SensorData::SensorData(SensorData&& other) noexcept:
 
 void SensorData::do_dump(HomerSensorDump& map) const noexcept
 {
+    insert(map, SENSOR_ATTR_PM10_STANDARD, this->pm10_standard);
+    insert(map, SENSOR_ATTR_PM25_STANDARD, this->pm25_standard);
+    insert(map, SENSOR_ATTR_PM100_STANDARD, this->pm100_standard);
+    insert(map, SENSOR_ATTR_PM10_ENV, this->pm10_env);
+    insert(map, SENSOR_ATTR_PM25_ENV, this->pm25_env);
+    insert(map, SENSOR_ATTR_PM100_ENV, this->pm100_env);
+    insert(map, SENSOR_ATTR_PARTICLES_03, this->particles_03);
+    insert(map, SENSOR_ATTR_PARTICLES_05, this->particles_05);
+    insert(map, SENSOR_ATTR_PARTICLES_10, this->particles_10);
+    insert(map, SENSOR_ATTR_PARTICLES_25, this->particles_25);
+    insert(map, SENSOR_ATTR_PARTICLES_50, this->particles_50);
+    insert(map, SENSOR_ATTR_PARTICLES_100, this->particles_100);
+}
 
+void SensorData::do_dump(std::stringstream& ss) const noexcept
+{
+    ss << "ENV PM10:  " << this->pm10_env << endl;
+    ss << "ENV PM25:  " << this->pm25_env << endl;
+    ss << "ENV PM100: " << this->pm100_env << endl;
+    ss << "PTC PM03:  " << this->particles_03 << endl;
+    ss << "PTC PM05:  " << this->particles_05 << endl;
+    ss << "PTC PM10:  " << this->particles_10 << endl;
+    ss << "PTC PM25:  " << this->particles_25 << endl;
+    ss << "PTC PM50:  " << this->particles_50 << endl;
+    ss << "PTC PM100: " << this->particles_100 << endl;
 }
 
 void SensorData::invalidate() noexcept
@@ -131,8 +182,14 @@ void SensorData::invalidate() noexcept
     this->particles_100 = std::numeric_limits<uint16_t>::max();
 }
 
+const char* SensorData::do_sensor_err_to_str(const uint64_t err) const noexcept
+{
+    return err_to_string(err);
+}
 
-// =============================================================================
+}
+
+namespace Pms5003 {
 
 Sensor::Sensor(Sensor&& other) noexcept:
         HomerSensor(std::move(other)),

@@ -37,6 +37,13 @@ const uint64_t ERROR_READ_SENSOR_FW = ERROR_READ_SENSOR_ID << 1;
 
 const uint64_t MEASUREMENT_GAP_MILLIS = 2000;
 
+const char* const SENSOR_ATTR_CO2 = "co2";
+const char* const SENSOR_ATTR_ABC_DAYS = "abc_days";
+const char* const SENSOR_ATTR_SENSOR_ID = "id";
+const char* const SENSOR_ATTR_SENSOR_FW = "fw";
+
+const char* err_to_string(uint64_t err) noexcept;
+
 class SensorData final : public HomerSensorData
 {
 public:
@@ -62,6 +69,8 @@ protected:
     void do_dump(std::stringstream& ss) const noexcept override;
 
     void do_dump(HomerSensorDump& map) const noexcept override;
+
+    const char* do_sensor_err_to_str(uint64_t err) const noexcept override;
 
     void invalidate() noexcept override;
 };

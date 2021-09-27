@@ -27,11 +27,17 @@ void HomerSensorData::dump(std::stringstream& ss) const noexcept
 
 HomerSensorDump HomerSensorData::dump() const noexcept
 {
-    HomerSensorDump as_map{};
+    auto map = HomerSensorDump{};
 
-    this->do_dump(as_map);
+    insert(map, SENSOR_ATTR_TIME_TO_READ, this->time_to_read);
+    insert(map, SENSOR_ATTR_HW_ERR, this->error.hardware_err());
+    insert(map, SENSOR_ATTR_SENSOR_ERR, this->error.sensor_err());
+    insert(map, SENSOR_ATTR_TIME_TO_READ, this->time_to_read);
 
-    return as_map;
+    if (this->error.is_ok())
+        this->do_dump(map);
+
+    return map;
 }
 
 
@@ -55,6 +61,11 @@ const HwErr& HomerSensorData::get_error() const noexcept
 HwErr& HomerSensorData::_get_error() noexcept
 {
     return this->error;
+}
+
+const char* HomerSensorData::do_hw_err_to_str(esp_err_t err) const noexcept
+{
+    return esp_err_to_name(err);
 }
 
 

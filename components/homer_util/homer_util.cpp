@@ -65,7 +65,23 @@ void print_sensor_dump_header(std::stringstream& ss) noexcept
     ss << std::endl;
 }
 
-// =============================================================================
+const char* err_to_string(const uint64_t err) noexcept
+{
+    switch (err) {
+        case ERROR_NO_DATA_AVAILABLE:
+            return "no_data_available";
+
+        case ERROR_NONE:
+            return "NO_ERROR";
+
+        default:
+            return nullptr;
+    }
+}
+
+}
+
+namespace homer1 {
 
 namespace {
 const char* HwErrTag = "HwErr";

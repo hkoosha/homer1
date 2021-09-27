@@ -25,6 +25,21 @@ const uint64_t ERROR_BAD_CHECKSUM = ERROR_BAD_MAGIC_VALUE << 1;
 
 const uint64_t MEASUREMENT_DELAY = 1000;
 
+const char* const SENSOR_ATTR_PM10_STANDARD = "pm10_std";
+const char* const SENSOR_ATTR_PM25_STANDARD = "pm25_std";
+const char* const SENSOR_ATTR_PM100_STANDARD = "pm100_std";
+const char* const SENSOR_ATTR_PM10_ENV = "pm10_env";
+const char* const SENSOR_ATTR_PM25_ENV = "pm25_env";
+const char* const SENSOR_ATTR_PM100_ENV = "pm100_env";
+const char* const SENSOR_ATTR_PARTICLES_03 = "particle_03";
+const char* const SENSOR_ATTR_PARTICLES_05 = "particle_05";
+const char* const SENSOR_ATTR_PARTICLES_10 = "particle_10";
+const char* const SENSOR_ATTR_PARTICLES_25 = "particle_25";
+const char* const SENSOR_ATTR_PARTICLES_50 = "particle_50";
+const char* const SENSOR_ATTR_PARTICLES_100 = "particle_100";
+
+
+const char* err_to_string(uint64_t err) noexcept;
 
 class SensorData final : public HomerSensorData
 {
@@ -58,20 +73,11 @@ public:
     uint16_t particles_100;
 
 protected:
-    void do_dump(std::stringstream& ss) const noexcept override
-    {
-        ss << "ENV PM10:  " << this->pm10_env << endl;
-        ss << "ENV PM25:  " << this->pm25_env << endl;
-        ss << "ENV PM100: " << this->pm100_env << endl;
-        ss << "PTC PM03:  " << this->particles_03 << endl;
-        ss << "PTC PM05:  " << this->particles_05 << endl;
-        ss << "PTC PM10:  " << this->particles_10 << endl;
-        ss << "PTC PM25:  " << this->particles_25 << endl;
-        ss << "PTC PM50:  " << this->particles_50 << endl;
-        ss << "PTC PM100: " << this->particles_100 << endl;
-    }
+    void do_dump(std::stringstream& ss) const noexcept override;
 
     void do_dump(HomerSensorDump& map) const noexcept override;
+
+    const char* do_sensor_err_to_str(uint64_t err) const noexcept override;
 
     void invalidate() noexcept override;
 };

@@ -57,6 +57,54 @@ uint16_t modbus_crc(const uint8_t* buf,
 
 namespace S8 {
 
+const char* err_to_string(const uint64_t err) noexcept
+{
+    switch (err) {
+        case ERROR_UART_WRITE_BYTES:
+            return "uart_write_bytes";
+
+        case ERROR_UART_WRITE_BYTES_LEN_TOO_BIG:
+            return "uart_write_bytes_len_too_big";
+
+        case ERROR_UART_WRITE_BYTES_LEN_TOO_SHORT:
+            return "uart_write_bytes_len_too_short";
+
+        case ERROR_UART_READ_BYTES:
+            return "uart_read_bytes";
+
+        case ERROR_UART_READ_BYTES_LEN_TOO_SHORT:
+            return "uart_read_bytes_len_too_short";
+
+        case ERROR_UART_READ_BYTES_LEN_TOO_BIG:
+            return "uart_read_bytes_len_too_big";
+
+        case ERROR_UART_READ_BYTES_BAD_CRC:
+            return "uart_read_bytes_bad_crc";
+
+        case ERROR_READ_REG:
+            return "read_reg";
+
+        case ERROR_READ_CO2:
+            return "read_co2";
+
+        case ERROR_READ_ABC_DAYS:
+            return "read_abc_days";
+
+        case ERROR_READ_SENSOR_ID:
+            return "read_sensor_id";
+
+        case ERROR_READ_SENSOR_FW:
+            return "read_sensor_fw";
+
+        default:
+            return nullptr;
+    }
+}
+
+}
+
+namespace S8 {
+
 void SensorData::do_dump(std::stringstream& ss) const noexcept
 {
     ss << "CO2: " << this->co2 << endl;
@@ -79,7 +127,10 @@ void SensorData::do_dump(std::stringstream& ss) const noexcept
 
 void SensorData::do_dump(HomerSensorDump& map) const noexcept
 {
-    assert(false);
+    insert(map, SENSOR_ATTR_CO2, this->co2);
+    insert(map, SENSOR_ATTR_ABC_DAYS, this->abc_days);
+    insert(map, SENSOR_ATTR_SENSOR_ID, this->sensor_id);
+    insert(map, SENSOR_ATTR_SENSOR_FW, this->sensor_fw);
 }
 
 void SensorData::invalidate() noexcept
@@ -89,6 +140,12 @@ void SensorData::invalidate() noexcept
     this->sensor_id = 0;
     this->sensor_fw = 0;
 }
+
+const char* SensorData::do_sensor_err_to_str(const uint64_t err) const noexcept
+{
+    return err_to_string(err);
+}
+
 
 SensorData& SensorData::operator=(const SensorData& other) noexcept
 {
@@ -147,8 +204,9 @@ SensorData::SensorData() noexcept:
 {
 }
 
+}
 
-// =============================================================================
+namespace S8 {
 
 Sensor::Sensor(Sensor&& other) noexcept:
         HomerSensor<SensorData>(std::move(other)),
@@ -411,4 +469,5 @@ SensorData& Sensor::get_raw_data() noexcept
 }
 
 }
+
 }

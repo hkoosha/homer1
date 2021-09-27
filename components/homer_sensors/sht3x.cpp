@@ -40,6 +40,24 @@ bool crc_matches(const uint8_t msb,
 
 namespace Sht3x {
 
+const char* err_to_string(const uint64_t err) noexcept
+{
+    switch (err) {
+        case ERROR_BAD_CRC_TEMPERATURE:
+            return "bad_crc_temperature";
+
+        case ERROR_BAD_CRC_HUMIDITY:
+            return "bad_crc_humidity";
+
+        default:
+            return nullptr;
+    }
+}
+
+}
+
+namespace Sht3x {
+
 SensorData& SensorData::operator=(const SensorData& other) noexcept
 {
     if (this == &other)
@@ -90,7 +108,8 @@ SensorData::SensorData() noexcept:
 
 void SensorData::do_dump(HomerSensorDump& map) const noexcept
 {
-    assert(false);
+    insert(map, SENSOR_ATTR_TEMPERATURE, this->temperature);
+    insert(map, SENSOR_ATTR_HUMIDITY, this->humidity);
 }
 
 void SensorData::do_dump(std::stringstream& ss) const noexcept
@@ -105,7 +124,14 @@ void SensorData::invalidate() noexcept
     this->humidity = std::numeric_limits<float>::quiet_NaN();
 }
 
-// =============================================================================
+const char* SensorData::do_sensor_err_to_str(const uint64_t err) const noexcept
+{
+    return err_to_string(err);
+}
+
+}
+
+namespace Sht3x {
 
 Sensor::Sensor(i2c::Device i2c) noexcept:
         HomerSensor<SensorData>(MEASUREMENT_GAP_MILLIS),
@@ -178,4 +204,5 @@ SensorData& Sensor::get_raw_data() noexcept
 }
 
 }
+
 }

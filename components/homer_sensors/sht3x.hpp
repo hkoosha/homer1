@@ -24,6 +24,12 @@ const uint8_t I2C_ADDR = 0x44;
 const uint32_t I2C_DELAY = 10;
 const uint64_t MEASUREMENT_GAP_MILLIS = 2000;
 
+const char* const SENSOR_ATTR_TEMPERATURE = "temperature";
+const char* const SENSOR_ATTR_HUMIDITY = "humidity";
+
+
+const char* err_to_string(uint64_t err) noexcept;
+
 class SensorData final : public HomerSensorData
 {
 public:
@@ -49,6 +55,8 @@ protected:
     void do_dump(std::stringstream& ss) const noexcept override;
 
     void do_dump(HomerSensorDump& map) const noexcept override;
+
+    const char* do_sensor_err_to_str(uint64_t err) const noexcept override;
 };
 
 class Sensor final : public HomerSensor<SensorData>

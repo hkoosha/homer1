@@ -35,8 +35,10 @@ const uint64_t ERROR_READ_UNCOMPENSATED_PRESSURE = ERROR_READ_UNCOMPENSATED_TEMP
 const uint64_t ERROR_CALCULATE_B5 = ERROR_READ_UNCOMPENSATED_PRESSURE << 1;
 const uint64_t ERROR_READ_PRESSURE = ERROR_CALCULATE_B5 << 1;
 
-// const char* SENSOR_ATTR_PRESSURE = "pressure";
-// const char* SENSOR_ATTR_TEMPERATURE = "temperature";
+const char* const SENSOR_ATTR_PRESSURE = "pressure";
+const char* const SENSOR_ATTR_TEMPERATURE = "temperature";
+
+const char* err_to_string(uint64_t err) noexcept;
 
 class SensorData final : public HomerSensorData
 {
@@ -61,6 +63,8 @@ protected:
     void do_dump(std::stringstream& ss) const noexcept override;
 
     void do_dump(HomerSensorDump& map) const noexcept override;
+
+    const char* do_sensor_err_to_str(uint64_t err) const noexcept override;
 
     void invalidate() noexcept override;
 };

@@ -17,6 +17,57 @@ const char* TAG = "homer_i2c";
 
 namespace i2c {
 
+const char* err_to_string(const uint64_t err) noexcept
+{
+    switch (err) {
+        case ERROR_I2C_MASTER_START:
+            return "i2c_master_start";
+
+        case ERROR_I2C_MASTER_WRITE_BYTE:
+            return "i2c_master_write_byte";
+
+        case ERROR_I2C_MASTER_WRITE:
+            return "i2c_master_write";
+
+        case ERROR_I2C_MASTER_STOP:
+            return "i2c_master_stop";
+
+        case ERROR_I2C_MASTER_CMD_BEGIN:
+            return "i2c_master_cmd_begin";
+
+        case ERROR_I2C_MASTER_READ_BYTE:
+            return "i2c_master_read_byte";
+
+        case ERROR_I2C_MASTER_READ:
+            return "i2c_master_read";
+
+        case ERROR_MASTER_READ_SLAVE:
+            return "i2c_master_read_slave";
+
+        case ERROR_MASTER_WRITE_SLAVE:
+            return "i2c_master_write_slave";
+
+        case ERROR_READ_INT16:
+            return "i2c_read_int16";
+
+        case ERROR_READ_UINT16:
+            return "i2c_read_uint16";
+
+        case ERROR_READ_UINT32:
+            return "i2c_read_uint32";
+
+        case ERROR_WRITE_REG:
+            return "i2c_write_reg";
+
+        default:
+            return nullptr;
+    }
+}
+
+}
+
+namespace i2c {
+
 Device::Device(const i2c_port_t i2c_num,
                const uint8_t addr,
                const TickType_t delay) noexcept:
@@ -45,6 +96,9 @@ Device& Device::operator=(Device&& other) noexcept
     return *this;
 }
 
+}
+
+namespace i2c {
 
 HwErr Device::write_to_slave(const uint8_t* data,
                              size_t size) const noexcept

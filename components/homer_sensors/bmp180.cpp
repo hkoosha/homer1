@@ -46,6 +46,42 @@ float calculate_temperature(const int32_t b5) noexcept
 
 namespace Bmp180 {
 
+const char* err_to_string(const uint64_t err) noexcept
+{
+    switch (err) {
+        case ERROR_NOT_INITIALIZED:
+            return "not_initialized";
+
+        case ERROR_ALREADY_INITIALIZED:
+            return "already_initialized";
+
+        case ERROR_INIT:
+            return "init";
+
+        case ERROR_READ_SENSOR_ROM:
+            return "read_sensor_rom";
+
+        case ERROR_READ_UNCOMPENSATED_TEMPERATURE:
+            return "read_uncompensated_temperature";
+
+        case ERROR_READ_UNCOMPENSATED_PRESSURE:
+            return "read_uncompensated_pressure";
+
+        case ERROR_CALCULATE_B5:
+            return "calculate_b5";
+
+        case ERROR_READ_PRESSURE:
+            return "read_pressure";
+
+        default:
+            return nullptr;
+    }
+}
+
+}
+
+namespace Bmp180 {
+
 SensorData::SensorData() noexcept:
         HomerSensorData(),
         pressure{std::numeric_limits<uint32_t>::max()},
@@ -94,7 +130,8 @@ void SensorData::do_dump(std::stringstream& ss) const noexcept
 
 void SensorData::do_dump(HomerSensorDump& map) const noexcept
 {
-    assert(false);
+    insert(map, SENSOR_ATTR_PRESSURE, this->pressure);
+    insert(map, SENSOR_ATTR_TEMPERATURE, this->temperature);
 }
 
 void SensorData::invalidate() noexcept
@@ -103,8 +140,14 @@ void SensorData::invalidate() noexcept
     this->temperature = std::numeric_limits<float>::quiet_NaN();
 }
 
+const char* SensorData::do_sensor_err_to_str(const uint64_t err) const noexcept
+{
+    return err_to_string(err);
+}
 
-// =============================================================================
+}
+
+namespace Bmp180 {
 
 Sensor::Sensor(i2c::Device i2c,
                const uint32_t reference_pressure,
