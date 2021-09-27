@@ -167,8 +167,8 @@ void Sensor::refresh_data() noexcept
     const uint16_t t = (read[0] << 8) + read[1];
     const uint16_t h = (read[3] << 8) + read[4];
 
-    this->data.humidity = static_cast<float>(t * 0.00267033 - 45.);
-    this->data.temperature = static_cast<float>(h * 0.0015259);
+    this->data.temperature = static_cast<float>(t * 0.00267033 - 45.);
+    this->data.humidity = static_cast<float>(h * 0.0015259);
     this->data._get_error().mark_ok_has_data();
 }
 

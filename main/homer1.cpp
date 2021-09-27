@@ -32,11 +32,11 @@ public:
     Sht3x::SensorData sht3x;
 
 
-    SensorData(const SensorData& other) = delete;
-
     SensorData& operator=(const SensorData& other) = delete;
 
     SensorData& operator=(SensorData&& other) = delete;
+
+    SensorData(const SensorData& other) = delete;
 
     SensorData(SensorData&& other) = delete;
 
@@ -57,13 +57,14 @@ public:
     Bmp180::Sensor bmp180;
     Sht3x::Sensor sht3x;
 
+
     SensorPeripheral(const SensorPeripheral& other) = delete;
+
+    SensorPeripheral(SensorPeripheral&& other) = delete;
 
     SensorPeripheral& operator=(const SensorPeripheral& other) = delete;
 
     SensorPeripheral& operator=(SensorPeripheral&& other) = delete;
-
-    SensorPeripheral(SensorPeripheral&& other) = delete;
 };
 
 class Sensor final
@@ -74,11 +75,12 @@ public:
     SemaphoreHandle_t mutex;
     volatile bool loop;
 
-    Sensor(const Sensor& other) = delete;
 
     Sensor& operator=(const Sensor& other) = delete;
 
     Sensor& operator=(Sensor&& other) = delete;
+
+    Sensor(const Sensor& other) = delete;
 
     Sensor(Sensor&& other) = delete;
 
@@ -183,6 +185,12 @@ Sensor* make_sensor()
             .mutex{},
             .loop = true,
     };
+
+    if (!sensor) {
+        ESP_LOGE(MY_TAG, "could not allocate sensor");
+        throw std::runtime_error("could not allocate sensor");
+    }
+
     sensor->mutex = xSemaphoreCreateMutex();
     if (!sensor->mutex) {
         ESP_LOGE(MY_TAG, "could not allocate mutex");
