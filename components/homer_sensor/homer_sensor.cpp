@@ -68,6 +68,27 @@ const char* HomerSensorData::do_hw_err_to_str(esp_err_t err) const noexcept
     return esp_err_to_name(err);
 }
 
+const char* HomerSensorData::hw_err_to_str(const HwErr* err) noexcept
+{
+    if (err == nullptr)
+        err = &this->get_error();
+
+    const auto msg = this->do_hw_err_to_str(err->hardware_err());
+    return msg == nullptr ? EMPTY : msg;
+}
+
+const char* HomerSensorData::sensor_err_to_str(const HwErr* err) noexcept
+{
+    if (err == nullptr)
+        err = &this->get_error();
+
+    if (err->sensor_err() == ERROR_NONE || err->sensor_err() == ERROR_NO_DATA_AVAILABLE)
+        return ::homer1::err_to_string(err->sensor_err());
+
+    const auto msg = this->do_sensor_err_to_str(err->sensor_err());
+    return msg == nullptr ? EMPTY : msg;
+}
+
 
 HomerSensorData& HomerSensorData::operator=(const HomerSensorData& other) noexcept
 {

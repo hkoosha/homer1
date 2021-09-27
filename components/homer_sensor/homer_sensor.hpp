@@ -56,26 +56,9 @@ public:
     HwErr& _get_error() noexcept;
 
 
-    const char* hw_err_to_str(const HwErr* err = nullptr) noexcept
-    {
-        if (err == nullptr)
-            err = &this->get_error();
+    const char* hw_err_to_str(const HwErr* err = nullptr) noexcept;
 
-        const auto msg = this->do_hw_err_to_str(err->hardware_err());
-        return msg == nullptr ? EMPTY : msg;
-    }
-
-    const char* sensor_err_to_str(const HwErr* err = nullptr) noexcept
-    {
-        if (err == nullptr)
-            err = &this->get_error();
-
-        if (err->sensor_err() == ERROR_NONE || err->sensor_err() == ERROR_NO_DATA_AVAILABLE)
-            return ::homer1::err_to_string(err->sensor_err());
-
-        const auto msg = this->do_sensor_err_to_str(err->sensor_err());
-        return msg == nullptr ? EMPTY : msg;
-    }
+    const char* sensor_err_to_str(const HwErr* err = nullptr) noexcept;
 
 
 protected:
