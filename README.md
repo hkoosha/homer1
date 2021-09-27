@@ -4,19 +4,18 @@ ESP-IDF based.
 
 Want something proper? have a look at https://gitlab.com/UncleRus/esp-idf-lib
 
-
-## Warning!
-- Not necessarily power consumption friendly.
-- SHT3X takes no calibration.
-- Sensor modes are not configurable, everything about sensor configuration is hard-coded.
-- It's more of a C-ish code put into C++.
-
 ## Sensors:
 - BMP180
 - SHT3X
 - S8 (Senseair)
 - PMS5003
 
+
+## Warning!
+- Not necessarily power consumption friendly.
+- Not necessarily memory / stack friendly.
+- SHT3X takes no calibration.
+- Sensor modes are not configurable, everything about sensor configuration is hard-coded.
 
 
 
