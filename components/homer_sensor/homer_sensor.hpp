@@ -17,6 +17,8 @@ const char* const SENSOR_ATTR_SENSOR_ERR = "sensor_err";
 const char* const SENSOR_ATTR_HW_ERR = "hw_err";
 const char* const SENSOR_ATTR_SENSOR_ERR_MSG = "sensor_err_msg";
 const char* const SENSOR_ATTR_HW_ERR_MSG = "hw_err_msg";
+const char* const SENSOR_ATTR_SENSOR_ERR_BIN = "sensor_err_bin";
+const char* const SENSOR_ATTR_HW_ERR_BIN = "hw_err_bin";
 
 const char* const EMPTY = "";
 
@@ -31,9 +33,9 @@ inline void insert(HomerSensorDump& map,
     map.insert({name, std::to_string(value)});
 }
 
-inline void insert_char(HomerSensorDump& map,
-                        const char* name,
-                        const char* value) noexcept
+inline void insert_str(HomerSensorDump& map,
+                       const char* name,
+                       const char* value) noexcept
 {
     map.insert({name, value});
 }

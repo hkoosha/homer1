@@ -35,8 +35,10 @@ HomerSensorDump HomerSensorData::dump(const bool include_name) const noexcept
 
     insert(map, SENSOR_ATTR_HW_ERR, this->error.hardware_err());
     insert(map, SENSOR_ATTR_SENSOR_ERR, this->error.sensor_err());
-    insert_char(map, SENSOR_ATTR_SENSOR_ERR_MSG, this->hw_err_to_str());
-    insert_char(map, SENSOR_ATTR_HW_ERR_MSG, this->sensor_err_to_str());
+    insert_str(map, SENSOR_ATTR_SENSOR_ERR_MSG, this->hw_err_to_str());
+    insert_str(map, SENSOR_ATTR_HW_ERR_MSG, this->sensor_err_to_str());
+    insert_str(map, SENSOR_ATTR_SENSOR_ERR_BIN, uint64_to_bin(this->error.sensor_err(), true));
+    insert_str(map, SENSOR_ATTR_HW_ERR_BIN, uint64_to_bin(this->error.hardware_err(), true));
 
     if (this->error.is_ok())
         this->do_dump(map);

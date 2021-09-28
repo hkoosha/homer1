@@ -1,4 +1,4 @@
-# set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=*)
+# set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=clang-analyzer-core.uninitialized.Branch)
 
 idf_component_register(
         SRCS
