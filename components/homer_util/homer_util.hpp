@@ -48,11 +48,11 @@ inline uint64_t now_millis() noexcept
 }
 
 
+void print_sensor_dump_header(std::stringstream& ss) noexcept;
+
 std::string uint64_to_bin(uint64_t n,
                           bool expand_zero = false,
                           bool prefix = true) noexcept;
-
-void print_sensor_dump_header(std::stringstream& ss) noexcept;
 
 }
 

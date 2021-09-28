@@ -47,6 +47,8 @@ inline void insert_str(HomerSensorDump& map,
     map.insert({name, value});
 }
 
+std::string to_json(const HomerSensorDump& map) noexcept;
+
 }
 
 namespace homer1 {

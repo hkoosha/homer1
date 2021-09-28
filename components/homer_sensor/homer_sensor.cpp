@@ -10,6 +10,31 @@ using std::uint64_t;
 
 namespace homer1 {
 
+std::string to_json(const HomerSensorDump& map) noexcept
+{
+    const size_t max = map.size() - 1;
+    size_t i{0};
+
+    std::string value{"{"};
+    for (const auto& item: map) {
+        value += "\n\"";
+        value += item.first;
+        value += "\" : \"";
+        value += item.second;
+        value += '"';
+        if (i < max)
+            value += ',';
+        i++;
+    }
+    value += "\n}";
+
+    return value;
+}
+
+}
+
+namespace homer1 {
+
 void HomerSensorData::dump_header(std::stringstream& ss) const noexcept
 {
     ss << "ERR: "

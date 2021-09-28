@@ -38,7 +38,14 @@ public:
 
     SensorData(const SensorData& other) = delete;
 
-    SensorData(SensorData&& other) = delete;
+
+    SensorData(SensorData&& other) noexcept:
+            pms5003{std::move(other.pms5003)},
+            bmp180{std::move(other.bmp180)},
+            s8{std::move(other.s8)},
+            sht3x{std::move(other.sht3x)}
+    {
+    }
 
     SensorData() noexcept:
             pms5003{},
@@ -58,13 +65,31 @@ public:
     Sht3x::Sensor sht3x;
 
 
-    SensorPeripheral(const SensorPeripheral& other) = delete;
-
-    SensorPeripheral(SensorPeripheral&& other) = delete;
-
     SensorPeripheral& operator=(const SensorPeripheral& other) = delete;
 
     SensorPeripheral& operator=(SensorPeripheral&& other) = delete;
+
+    SensorPeripheral(const SensorPeripheral& other) = delete;
+
+
+    SensorPeripheral(SensorPeripheral&& other) noexcept:
+            s8{std::move(other.s8)},
+            pms5003{std::move(other.pms5003)},
+            bmp180{std::move(other.bmp180)},
+            sht3x{std::move(other.sht3x)}
+    {
+    }
+
+    SensorPeripheral(S8::Sensor&& s8,
+                     Pms5003::Sensor&& pms5003,
+                     Bmp180::Sensor&& bmp180,
+                     Sht3x::Sensor&& sht3x) noexcept:
+            s8{std::move(s8)},
+            pms5003{std::move(pms5003)},
+            bmp180{std::move(bmp180)},
+            sht3x{std::move(sht3x)}
+    {
+    }
 };
 
 class Sensor final
@@ -83,6 +108,17 @@ public:
     Sensor(const Sensor& other) = delete;
 
     Sensor(Sensor&& other) = delete;
+
+
+    Sensor(SensorData&& data,
+           SensorPeripheral&& peripheral,
+           SemaphoreHandle_t&& mutex) noexcept:
+            data{std::move(data)},
+            peripheral{std::move(peripheral)},
+            mutex{mutex},
+            loop{true}
+    {
+    }
 
 
     void update_s8() noexcept
@@ -193,6 +229,25 @@ public:
             ss << item.first << "=" << item.second << std::endl;
     }
 
+    void dump_json(std::stringstream& ss) noexcept
+    {
+        this->lock();
+        HomerSensorDump pms5003_dump = this->data.pms5003.dump();
+        HomerSensorDump bmp180_dump = this->data.bmp180.dump();
+        HomerSensorDump s8_dump = this->data.s8.dump();
+        HomerSensorDump sht3x_dump = this->data.sht3x.dump();
+        this->unlock();
+
+        const std::string pms5003_json = to_json(pms5003_dump);
+        const std::string bmp180_json = to_json(bmp180_dump);
+        const std::string s8_json = to_json(s8_dump);
+        const std::string sht3x_json = to_json(sht3x_dump);
+
+        ss << pms5003_json
+           << bmp180_json
+           << s8_json
+           << sht3x_json;
+    }
 
 private:
     void lock() noexcept
@@ -210,11 +265,11 @@ private:
 Sensor* make_sensor()
 {
     auto sensor = new Sensor{
-            .data{},
-            .peripheral{
-                    .s8 {S8::Sensor{UART_NUM_2}},
-                    .pms5003 {Pms5003::Sensor{UART_NUM_1}},
-                    .bmp180 {Bmp180::Sensor{
+            {},
+            SensorPeripheral{
+                    {S8::Sensor{UART_NUM_2}},
+                    {Pms5003::Sensor{UART_NUM_1}},
+                    {Bmp180::Sensor{
                             i2c::Device{
                                     I2C_NUM_0,
                                     Bmp180::I2C_ADDR,
@@ -223,7 +278,7 @@ Sensor* make_sensor()
                             Bmp180::SEA_LEVEL_PRESSURE,
                             Bmp180::OVERSAMPLING_ULTRA_HIGH_RES
                     }},
-                    .sht3x {Sht3x::Sensor{
+                    {Sht3x::Sensor{
                             i2c::Device{
                                     I2C_NUM_1,
                                     Sht3x::I2C_ADDR,
@@ -231,8 +286,7 @@ Sensor* make_sensor()
                             }
                     }}
             },
-            .mutex{},
-            .loop = true,
+            nullptr
     };
 
     if (!sensor) {
@@ -260,7 +314,7 @@ void read_sensors(Sensor* sensor) noexcept
                 } while (sensor0->loop);
             },
             "work_read_s8",
-            1024 * 5,
+            1024 * 4,
             sensor,
             10,
             nullptr
@@ -302,7 +356,7 @@ void read_sensors(Sensor* sensor) noexcept
                 } while (sensor0->loop);
             },
             "work_read_sht3x",
-            1024 * 5,
+            1024 * 3,
             sensor,
             10,
             nullptr
@@ -317,7 +371,7 @@ void dump_sensors(Sensor* sensor) noexcept
                 do {
                     std::stringstream ss;
                     print_sensor_dump_header(ss);
-                    sensor0->dump_map(ss);
+                    sensor0->dump_json(ss);
                     std::cout << ss.str();
                     my_sleep_millis(PRINT_DELAY);
                 } while (sensor0->loop);
