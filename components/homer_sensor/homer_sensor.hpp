@@ -2,7 +2,7 @@
 
 #include <limits>
 #include <cstdint>
-#include <unordered_map>
+#include <map>
 #include <string>
 
 #include "homer_util.hpp"
@@ -20,7 +20,7 @@ const char* const SENSOR_ATTR_HW_ERR_MSG = "hw_err_msg";
 
 const char* const EMPTY = "";
 
-using HomerSensorDump = std::unordered_map<const char*, std::string>;
+using HomerSensorDump = std::map<std::string, std::string>;
 
 // Because clion goes crazy if I make this insert call on site.
 template<typename V>
@@ -38,6 +38,17 @@ inline void insert_char(HomerSensorDump& map,
     map.insert({name, value});
 }
 
+inline void insert_str(HomerSensorDump& map,
+                       const std::string& name,
+                       const std::string& value) noexcept
+{
+    map.insert({name, value});
+}
+
+}
+
+namespace homer1 {
+
 template<typename DATA>
 class HomerSensor;
 
@@ -48,7 +59,7 @@ public:
 
     HomerSensorData& operator=(HomerSensorData&& other) noexcept;
 
-    HomerSensorData(const HomerSensorData& other) noexcept;
+    HomerSensorData(const HomerSensorData& other) noexcept = default;
 
     HomerSensorData(HomerSensorData&& other) noexcept;
 
@@ -58,7 +69,7 @@ public:
 
     void dump(std::stringstream& ss) const noexcept;
 
-    HomerSensorDump dump() const noexcept;
+    HomerSensorDump dump(bool include_name = true) const noexcept;
 
     const HwErr& get_error() const noexcept;
 
@@ -69,9 +80,10 @@ public:
 
     const char* sensor_err_to_str(const HwErr* err = nullptr) const noexcept;
 
+    const char* name() const noexcept;
 
 protected:
-    HomerSensorData() noexcept;
+    explicit HomerSensorData(const char* name) noexcept;
 
     virtual void do_dump(HomerSensorDump& map) const noexcept = 0;
 
@@ -99,6 +111,7 @@ private:
 
     uint64_t time_to_read;
     uint64_t read_start;
+    const char* _name;
 };
 
 template<typename DATA>

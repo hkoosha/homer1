@@ -17,7 +17,6 @@ using std::int32_t;
 namespace homer1 {
 
 namespace {
-const char* TAG = "Sensor";
 
 const auto UART_READ_WAIT = 500;
 const auto UART_READ_WAIT_TICKS = UART_READ_WAIT / portTICK_RATE_MS;
@@ -75,6 +74,8 @@ SensorData& SensorData::operator=(const SensorData& other) noexcept
     this->particles_50 = other.particles_50;
     this->particles_100 = other.particles_100;
 
+    this->_name = other._name;
+
     HomerSensorData::operator=(other);
 
     return *this;
@@ -98,13 +99,15 @@ SensorData& SensorData::operator=(SensorData&& other) noexcept
     this->particles_50 = other.particles_50;
     this->particles_100 = other.particles_100;
 
+    this->_name = std::move(other._name);
+
     HomerSensorData::operator=(std::move(other));
 
     return *this;
 }
 
 SensorData::SensorData() noexcept:
-        HomerSensorData(),
+        HomerSensorData{NAME},
         pm10_standard{std::numeric_limits<uint16_t>::max()},
         pm25_standard{std::numeric_limits<uint16_t>::max()},
         pm100_standard{std::numeric_limits<uint16_t>::max()},
@@ -116,7 +119,8 @@ SensorData::SensorData() noexcept:
         particles_10{std::numeric_limits<uint16_t>::max()},
         particles_25{std::numeric_limits<uint16_t>::max()},
         particles_50{std::numeric_limits<uint16_t>::max()},
-        particles_100{std::numeric_limits<uint16_t>::max()}
+        particles_100{std::numeric_limits<uint16_t>::max()},
+        _name{"PMS5003"}
 {
 }
 
@@ -133,9 +137,29 @@ SensorData::SensorData(SensorData&& other) noexcept:
         particles_10{other.particles_10},
         particles_25{other.particles_25},
         particles_50{other.particles_50},
-        particles_100{other.particles_100}
+        particles_100{other.particles_100},
+        _name{std::move(other._name)}
 {
 }
+
+SensorData::SensorData(const SensorData& other) noexcept: // NOLINT(modernize-use-equals-default)
+        HomerSensorData(other),
+        pm10_standard{other.pm10_standard},
+        pm25_standard{other.pm25_standard},
+        pm100_standard{other.pm100_standard},
+        pm10_env{other.pm10_env},
+        pm25_env{other.pm25_env},
+        pm100_env{other.pm100_env},
+        particles_03{other.particles_03},
+        particles_05{other.particles_05},
+        particles_10{other.particles_10},
+        particles_25{other.particles_25},
+        particles_50{other.particles_50},
+        particles_100{other.particles_100},
+        _name{other._name}
+{
+}
+
 
 void SensorData::do_dump(HomerSensorDump& map) const noexcept
 {
@@ -207,7 +231,7 @@ Sensor::Sensor(const uart_port_t port) :
 {
     this->uart_buffer = new uint8_t[32];
     if (!this->uart_buffer) {
-        ESP_LOGE(TAG, "could not allocate buffer[32]");
+        ESP_LOGE(NAME, "could not allocate buffer[32]");
         throw std::runtime_error("could not allocate buffer[32]");
     }
 }
@@ -257,14 +281,14 @@ HwErr Sensor::read_frame() noexcept
     size_t loop = 0;
 
     start_over:
-    ESP_LOGV(TAG, "trying to receive from sensor, try=%d", loop);
+    ESP_LOGV(NAME, "trying to receive from sensor, try=%d", loop);
 
     for (size_t i = 0; i < 32; i++)
         this->uart_buffer[i] = 0;
 
     const auto err = uart_flush_input(this->port);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "failed to flush buffer");
+        ESP_LOGE(NAME, "failed to flush buffer");
         return {ERROR_UART_BUFFER_FLUSH, err};
     }
 
@@ -272,7 +296,7 @@ HwErr Sensor::read_frame() noexcept
     while (this->uart_buffer[0] != MAGIC0 || this->uart_buffer[1] != MAGIC1 || remaining) {
         loop++;
         if (loop > MAX_RETRIES) {
-            ESP_LOGE(TAG, "attempts exhausted while trying to read from sensor");
+            ESP_LOGE(NAME, "attempts exhausted while trying to read from sensor");
             return HwErr::make_sensor_err(ERROR_READ_ATTEMPTS_EXHAUSTED);
         }
 
@@ -282,7 +306,7 @@ HwErr Sensor::read_frame() noexcept
                                          remaining,
                                          UART_READ_WAIT_TICKS);
         if (len < 0) {
-            ESP_LOGE(TAG, "uart read error: %d", len);
+            ESP_LOGE(NAME, "uart read error: %d", len);
             return {ERROR_UART_READ, len};
         }
 
@@ -305,7 +329,7 @@ HwErr Sensor::read_frame() noexcept
     }
 
     if (this->uart_buffer[0] != MAGIC0 || this->uart_buffer[1] != MAGIC1) {
-        ESP_LOGE(TAG, "wrong magic0, expecting=%02x-%02x got=%02x-%02x",
+        ESP_LOGE(NAME, "wrong magic0, expecting=%02x-%02x got=%02x-%02x",
                  MAGIC0,
                  MAGIC1,
                  this->uart_buffer[0],
@@ -343,7 +367,7 @@ bool Sensor::checksum_check() const noexcept
         sum += this->uart_buffer[i];
 
     if (sum != checksum)
-        ESP_LOGE(TAG, "sum=%d, checksum=%d", sum, checksum);
+        ESP_LOGE(NAME, "sum=%d, checksum=%d", sum, checksum);
 
     return sum == checksum;
 }

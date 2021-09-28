@@ -1,5 +1,6 @@
 #include <sstream>
 #include <cstdint>
+#include <utility>
 
 #include "homer_util.hpp"
 #include "homer_sensor.hpp"
@@ -25,7 +26,7 @@ void HomerSensorData::dump(std::stringstream& ss) const noexcept
     this->do_dump(ss);
 }
 
-HomerSensorDump HomerSensorData::dump() const noexcept
+HomerSensorDump HomerSensorData::dump(const bool include_name) const noexcept
 {
     auto map = HomerSensorDump{};
 
@@ -40,7 +41,15 @@ HomerSensorDump HomerSensorData::dump() const noexcept
     if (this->error.is_ok())
         this->do_dump(map);
 
-    return map;
+    if (!include_name)
+        return map;
+
+    const std::string UNDERSCORE = "_";
+    auto named_map = HomerSensorDump{};
+    for (const auto& item: map)
+        insert_str(named_map, this->name() + UNDERSCORE + item.first, item.second);
+
+    return named_map;
 }
 
 
@@ -92,6 +101,11 @@ const char* HomerSensorData::sensor_err_to_str(const HwErr* err) const noexcept
     return msg == nullptr ? EMPTY : msg;
 }
 
+const char* HomerSensorData::name() const noexcept
+{
+    return this->_name;
+}
+
 
 HomerSensorData& HomerSensorData::operator=(const HomerSensorData& other) noexcept
 {
@@ -101,6 +115,7 @@ HomerSensorData& HomerSensorData::operator=(const HomerSensorData& other) noexce
     this->error = other.error;
     this->time_to_read = other.time_to_read;
     this->read_start = other.read_start;
+    this->_name = other._name;
 
     return *this;
 }
@@ -113,31 +128,24 @@ HomerSensorData& HomerSensorData::operator=(HomerSensorData&& other) noexcept
     this->error = std::move(other.error);
     this->time_to_read = other.time_to_read;
     this->read_start = other.read_start;
+    this->_name = other._name;
 
     return *this;
 }
 
-HomerSensorData::HomerSensorData() noexcept:
+HomerSensorData::HomerSensorData(const char* _name) noexcept:
         error{HwErr::make_no_data()},
         time_to_read{std::numeric_limits<uint64_t>::max()},
-        read_start{0}
+        read_start{0},
+        _name{_name}
 {
-}
-
-HomerSensorData::HomerSensorData(const HomerSensorData& other) noexcept:
-        error{other.error},
-        time_to_read{other.time_to_read},
-        read_start{other.read_start}
-{
-    this->error = other.error;
-    this->time_to_read = other.time_to_read;
-    this->read_start = other.read_start;
 }
 
 HomerSensorData::HomerSensorData(HomerSensorData&& other) noexcept:
         error{std::move(other.error)},
         time_to_read{other.time_to_read},
-        read_start{other.read_start}
+        read_start{other.read_start},
+        _name{other._name}
 {
 }
 

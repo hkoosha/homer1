@@ -14,8 +14,6 @@ namespace homer1 {
 
 namespace {
 
-const char* TAG = "SHT3X";
-
 bool crc_matches(const uint8_t msb,
                  const uint8_t lsb,
                  const uint8_t expected_crc) noexcept
@@ -99,7 +97,7 @@ SensorData::SensorData(SensorData&& other) noexcept:
 }
 
 SensorData::SensorData() noexcept:
-        HomerSensorData(),
+        HomerSensorData(NAME),
         temperature{std::numeric_limits<float>::quiet_NaN()},
         humidity{std::numeric_limits<float>::quiet_NaN()}
 {
@@ -165,7 +163,7 @@ void Sensor::refresh_data() noexcept
     auto err = this->i2c.write(0x24, 0x00);
     this->data._get_error().merge_from(err);
     if (err.has_error()) {
-        ESP_LOGE(TAG, "i2c write failed");
+        ESP_LOGE(NAME, "i2c write failed");
         return;
     }
 
@@ -175,18 +173,18 @@ void Sensor::refresh_data() noexcept
     err = this->i2c.read_from_slave(read, 6);
     this->data._get_error().merge_from(err);
     if (err.has_error()) {
-        ESP_LOGE(TAG, "i2c read from slave failed");
+        ESP_LOGE(NAME, "i2c read from slave failed");
         return;
     }
 
     if (!crc_matches(read[0], read[1], read[2])) {
         this->data._get_error().add_sensor_err(ERROR_BAD_CRC_TEMPERATURE);
-        ESP_LOGE(TAG, "CRC mismatch for temperature");
+        ESP_LOGE(NAME, "CRC mismatch for temperature");
         return;
     }
     if (!crc_matches(read[3], read[4], read[5])) {
         this->data._get_error().add_sensor_err(ERROR_BAD_CRC_HUMIDITY);
-        ESP_LOGE(TAG, "CRC mismatch for humidity");
+        ESP_LOGE(NAME, "CRC mismatch for humidity");
         return;
     }
 

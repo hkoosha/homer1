@@ -17,6 +17,8 @@ using std::endl;
 namespace homer1 {
 namespace Pms5003 {
 
+const char* const NAME = "PMS5003";
+
 const uint64_t ERROR_UART_READ = ERROR_NO_DATA_AVAILABLE << 1;
 const uint64_t ERROR_UART_BUFFER_FLUSH = ERROR_UART_READ << 1;
 const uint64_t ERROR_READ_ATTEMPTS_EXHAUSTED = ERROR_UART_BUFFER_FLUSH << 1;
@@ -48,7 +50,7 @@ public:
 
     SensorData& operator=(SensorData&& other) noexcept;
 
-    SensorData(const SensorData& other) noexcept = default;
+    SensorData(const SensorData& other) noexcept;
 
     SensorData(SensorData&& other) noexcept;
 
@@ -80,6 +82,9 @@ protected:
     const char* do_sensor_err_to_str(uint64_t err) const noexcept override;
 
     void invalidate() noexcept override;
+
+private:
+    std::string _name;
 };
 
 class Sensor final : public HomerSensor<SensorData>

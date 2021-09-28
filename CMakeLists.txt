@@ -4,3 +4,4 @@ set(EXTRA_COMPONENT_DIRS "$ENV{IDF_PATH}/examples/cxx/experimental/experimental_
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(homer1)
+

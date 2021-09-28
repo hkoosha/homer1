@@ -19,7 +19,6 @@ using std::endl;
 namespace homer1 {
 
 namespace {
-const char* TAG = "Sensor";
 
 const unsigned char ID_HI[] = {0xFE, 0x04, 0x00, 0x1D, 0x00, 0x01, 0xB5, 0xC3};
 const unsigned char ID_LO[] = {0xFE, 0x04, 0x00, 0x1E, 0x00, 0x01, 0x45, 0xC3};
@@ -196,7 +195,7 @@ SensorData::SensorData(SensorData&& other) noexcept:
 }
 
 SensorData::SensorData() noexcept:
-        HomerSensorData(),
+        HomerSensorData(NAME),
         co2{std::numeric_limits<int16_t>::max()},
         abc_days{std::numeric_limits<int16_t>::max()},
         sensor_id{0},
@@ -230,7 +229,7 @@ Sensor::Sensor(const uart_port_t port) :
 {
     this->uart_buffer = new uint8_t[8];
     if (!this->uart_buffer) {
-        ESP_LOGE(TAG, "could not allocate buffer[8]");
+        ESP_LOGE(NAME, "could not allocate buffer[8]");
         throw std::runtime_error("could not allocate buffer[8]");
     }
 }
@@ -321,7 +320,7 @@ HwErr Sensor::read_co2(int16_t& co2) noexcept
     auto err = this->read_reg(CO2_REQ, co2);
 
     if (err.has_error()) {
-        ESP_LOGE(TAG, "error reading co2");
+        ESP_LOGE(NAME, "error reading co2");
         err.add_sensor_err(ERROR_READ_CO2);
         return err;
     }
@@ -334,7 +333,7 @@ HwErr Sensor::read_abc_days(int16_t& days) noexcept
     auto err = this->read_reg(ABC_REQ, days);
 
     if (err.has_error()) {
-        ESP_LOGE(TAG, "error reading abc");
+        ESP_LOGE(NAME, "error reading abc");
         err.add_sensor_err(ERROR_READ_ABC_DAYS);
         return err;
     }
@@ -347,7 +346,7 @@ HwErr Sensor::read_sensor_id(int32_t& id) noexcept
     int16_t id_hi;
     auto err = this->read_reg(ID_HI, id_hi);
     if (err.has_error()) {
-        ESP_LOGE(TAG, "error reading id_hi");
+        ESP_LOGE(NAME, "error reading id_hi");
         err.add_sensor_err(ERROR_READ_SENSOR_ID);
         return err;
     }
@@ -355,7 +354,7 @@ HwErr Sensor::read_sensor_id(int32_t& id) noexcept
     int16_t id_lo;
     err = this->read_reg(ID_LO, id_lo);
     if (err.has_error()) {
-        ESP_LOGE(TAG, "error reading id_lo");
+        ESP_LOGE(NAME, "error reading id_lo");
         err.add_sensor_err(ERROR_READ_SENSOR_ID);
         return err;
     }
@@ -371,7 +370,7 @@ HwErr Sensor::read_sensor_fw(int16_t& fw) noexcept
     auto err = this->read_reg(FW_REQ, fw);
 
     if (err.has_error()) {
-        ESP_LOGE(TAG, "error reading fw");
+        ESP_LOGE(NAME, "error reading fw");
         err.add_sensor_err(ERROR_READ_SENSOR_FW);
         return err;
     }
@@ -413,19 +412,19 @@ HwErr Sensor::write_8_bytes(const unsigned char* bytes) const noexcept
     const auto len = uart_write_bytes(this->port, bytes, 8);
 
     if (len < 0) {
-        ESP_LOGE(TAG, "uart write error, code=%d", len);
+        ESP_LOGE(NAME, "uart write error, code=%d", len);
         return {ERROR_UART_WRITE_BYTES, len};
     }
     else if (len > 8) {
-        ESP_LOGE(TAG, "uart write assertion error, too much data written, expected=8, written=%d", len);
+        ESP_LOGE(NAME, "uart write assertion error, too much data written, expected=8, written=%d", len);
         return {ERROR_UART_WRITE_BYTES_LEN_TOO_BIG, ESP_OK};
     }
     else if (len != 8) {
-        ESP_LOGE(TAG, "uart write error, could not write all data, expected to write=8, written=%d", len);
+        ESP_LOGE(NAME, "uart write error, could not write all data, expected to write=8, written=%d", len);
         return {ERROR_UART_WRITE_BYTES_LEN_TOO_SHORT, ESP_OK};
     }
     else {
-        ESP_LOGV(TAG, "wrote 8 bytes to uart");
+        ESP_LOGV(NAME, "wrote 8 bytes to uart");
         return HwErr::make_ok();
     }
 }
@@ -438,15 +437,15 @@ HwErr Sensor::read_7_bytes() noexcept
     const auto len = uart_read_bytes(this->port, this->uart_buffer, 8, UART_READ_WAIT_TICKS);
 
     if (len < 0) {
-        ESP_LOGE(TAG, "uart read error, code=%d", len);
+        ESP_LOGE(NAME, "uart read error, code=%d", len);
         return {ERROR_UART_READ_BYTES, len};
     }
     else if (len > 7) {
-        ESP_LOGE(TAG, "too much data in uart, by now memory is corrupt.");
+        ESP_LOGE(NAME, "too much data in uart, by now memory is corrupt.");
         return {ERROR_UART_READ_BYTES_LEN_TOO_BIG, ESP_OK};
     }
     else if (len < 7) {
-        ESP_LOGE(TAG, "uart read error, could not read all data, expected to read=7, actual read=%d", len);
+        ESP_LOGE(NAME, "uart read error, could not read all data, expected to read=7, actual read=%d", len);
         return {ERROR_UART_READ_BYTES_LEN_TOO_SHORT, ESP_OK};
     }
 
@@ -456,7 +455,7 @@ HwErr Sensor::read_7_bytes() noexcept
     const auto calc_crc = modbus_crc(this->uart_buffer, 5);
 
     if (read_crc != calc_crc) {
-        ESP_LOGE(TAG, "uart read error, crc mismatch.");
+        ESP_LOGE(NAME, "uart read error, crc mismatch.");
         return {ERROR_UART_READ_BYTES_BAD_CRC, ESP_OK};
     }
 

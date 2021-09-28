@@ -17,6 +17,8 @@ using std::endl;
 namespace homer1 {
 namespace Sht3x {
 
+const char* const NAME = "SHT3X";
+
 const uint64_t ERROR_BAD_CRC_TEMPERATURE = ERROR_NO_DATA_AVAILABLE << 1;
 const uint64_t ERROR_BAD_CRC_HUMIDITY = ERROR_BAD_CRC_TEMPERATURE << 1;
 

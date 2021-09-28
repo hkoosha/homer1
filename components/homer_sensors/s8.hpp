@@ -20,6 +20,8 @@ using std::endl;
 namespace homer1 {
 namespace S8 {
 
+const char* const NAME = "S8";
+
 const uint64_t ERROR_UART_WRITE_BYTES = ERROR_NO_DATA_AVAILABLE << 1;
 const uint64_t ERROR_UART_WRITE_BYTES_LEN_TOO_BIG = ERROR_UART_WRITE_BYTES << 1;
 const uint64_t ERROR_UART_WRITE_BYTES_LEN_TOO_SHORT = ERROR_UART_WRITE_BYTES_LEN_TOO_BIG << 1;

@@ -1,3 +1,5 @@
+# set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=*)
+
 idf_component_register(
         SRCS
 

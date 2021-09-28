@@ -20,6 +20,8 @@ using std::uint64_t;
 namespace homer1 {
 namespace Bmp180 {
 
+const char* const NAME = "BMP180";
+
 const TickType_t I2C_DELAY = 1000 / portTICK_RATE_MS;
 const uint32_t SEA_LEVEL_PRESSURE = 101325;
 const uint8_t I2C_ADDR = 0x77;
@@ -55,6 +57,7 @@ public:
 
     ~SensorData() noexcept override = default;
 
+
     // TODO uint? or int? negative pressure? check datasheet again.
     uint32_t pressure;
     float temperature;
@@ -67,6 +70,7 @@ protected:
     const char* do_sensor_err_to_str(uint64_t err) const noexcept override;
 
     void invalidate() noexcept override;
+
 };
 
 class Sensor final : public HomerSensor<SensorData>

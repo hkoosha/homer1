@@ -22,6 +22,9 @@ const uint64_t ERROR_NO_DATA_AVAILABLE = 1;
 
 const char* err_to_string(uint64_t err) noexcept;
 
+}
+
+namespace homer1 {
 
 inline void my_sleep_ticks(const size_t ticks) noexcept
 {
@@ -50,6 +53,10 @@ std::string uint64_to_bin(uint64_t n,
                           bool prefix = true) noexcept;
 
 void print_sensor_dump_header(std::stringstream& ss) noexcept;
+
+}
+
+namespace homer1 {
 
 class HwErr final
 {

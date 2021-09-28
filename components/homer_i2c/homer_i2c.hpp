@@ -35,7 +35,7 @@ const uint64_t ERROR_WRITE_REG = ERROR_READ_UINT32 << 1;
 //---
 const uint64_t ERROR_MAX = ERROR_WRITE_REG;
 
-const char* err_to_string(const uint64_t err) noexcept;
+const char* err_to_string(uint64_t err) noexcept;
 
 class Device final
 {
