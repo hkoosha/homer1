@@ -3,6 +3,7 @@
 idf_component_register(
         SRCS
             "homer1.cpp"
+            "homer_wifi.c"
 
         INCLUDE_DIRS
             "."

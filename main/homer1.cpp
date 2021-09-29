@@ -19,6 +19,7 @@
 #include "pms5003.hpp"
 #include "bmp180.hpp"
 #include "sht3x.hpp"
+#include "homer_wifi.c"
 
 using namespace homer1;
 
@@ -455,7 +456,7 @@ bool push(const char* const url,
         return false;
     }
     else {
-        ESP_LOGI(PUSHER_TAG, "wrote bytes=%d", len);
+        ESP_LOGD(PUSHER_TAG, "wrote bytes=%d", len);
         return true;
     }
 }
@@ -534,7 +535,7 @@ void my_wifi_init(const char* ssid,
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT()
+    wifi_init_config_t cfg = my_get_wifi_cfg();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
     ESP_ERROR_CHECK(esp_event_handler_instance_register(
