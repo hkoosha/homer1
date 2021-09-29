@@ -12,5 +12,17 @@ menu "Homer1 Configuration"
         help
             Wifi Password
 
+    config MY_INFLUXDB_TOKEN
+        string "InfluxDB token"
+        default "my_token"
+        help
+            InfluxDB Token
+
+    config MY_INFLUXDB_URL
+        string "InfluxDB URL"
+        default "my_url"
+        help
+            InfluxDB URL
+
 endmenu
 

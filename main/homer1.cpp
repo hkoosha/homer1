@@ -1,6 +1,8 @@
 #include <iostream>
 #include <cstdint>
 #include <map>
+#include <vector>
+#include <algorithm>
 
 #include "esp_log.h"
 
@@ -206,10 +208,10 @@ public:
     void dump_map(std::stringstream& ss) noexcept
     {
         this->lock();
-        HomerSensorDump pms5003_dump = this->data.pms5003.dump();
-        HomerSensorDump bmp180_dump = this->data.bmp180.dump();
-        HomerSensorDump s8_dump = this->data.s8.dump();
-        HomerSensorDump sht3x_dump = this->data.sht3x.dump();
+        const HomerSensorDump pms5003_dump = this->data.pms5003.dump();
+        const HomerSensorDump bmp180_dump = this->data.bmp180.dump();
+        const HomerSensorDump s8_dump = this->data.s8.dump();
+        const HomerSensorDump sht3x_dump = this->data.sht3x.dump();
         this->unlock();
 
         ss << "[PMS5003]" << std::endl;
@@ -229,24 +231,20 @@ public:
             ss << item.first << "=" << item.second << std::endl;
     }
 
-    void dump_json(std::stringstream& ss) noexcept
+    void dump_influxdb(std::stringstream& ss) noexcept
     {
+        std::vector<std::string> measurements{};
         this->lock();
-        HomerSensorDump pms5003_dump = this->data.pms5003.dump();
-        HomerSensorDump bmp180_dump = this->data.bmp180.dump();
-        HomerSensorDump s8_dump = this->data.s8.dump();
-        HomerSensorDump sht3x_dump = this->data.sht3x.dump();
+        this->data.pms5003.influxdb(measurements);
+        this->data.bmp180.influxdb(measurements);
+        this->data.s8.influxdb(measurements);
+        this->data.sht3x.influxdb(measurements);
         this->unlock();
 
-        const std::string pms5003_json = to_json(pms5003_dump);
-        const std::string bmp180_json = to_json(bmp180_dump);
-        const std::string s8_json = to_json(s8_dump);
-        const std::string sht3x_json = to_json(sht3x_dump);
+        std::sort(measurements.begin(), measurements.end());
 
-        ss << pms5003_json
-           << bmp180_json
-           << s8_json
-           << sht3x_json;
+        for (const auto& item: measurements)
+            ss << item << std::endl;
     }
 
 private:
@@ -371,7 +369,7 @@ void dump_sensors(Sensor* sensor) noexcept
                 do {
                     std::stringstream ss;
                     print_sensor_dump_header(ss);
-                    sensor0->dump_json(ss);
+                    sensor0->dump_influxdb(ss);
                     std::cout << ss.str();
                     my_sleep_millis(PRINT_DELAY);
                 } while (sensor0->loop);

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "homer_util.hpp"
 
@@ -13,12 +14,12 @@ using std::uint64_t;
 namespace homer1 {
 
 const char* const SENSOR_ATTR_TIME_TO_READ = "TTR";
-const char* const SENSOR_ATTR_SENSOR_ERR = "sensor_err";
-const char* const SENSOR_ATTR_HW_ERR = "hw_err";
-const char* const SENSOR_ATTR_SENSOR_ERR_MSG = "sensor_err_msg";
-const char* const SENSOR_ATTR_HW_ERR_MSG = "hw_err_msg";
-const char* const SENSOR_ATTR_SENSOR_ERR_BIN = "sensor_err_bin";
-const char* const SENSOR_ATTR_HW_ERR_BIN = "hw_err_bin";
+const char* const SENSOR_ATTR_SENSOR_ERR = "err_v_sensor";
+const char* const SENSOR_ATTR_HW_ERR = "err_v_hw";
+const char* const SENSOR_ATTR_SENSOR_ERR_MSG = "err_msg_sensor";
+const char* const SENSOR_ATTR_HW_ERR_MSG = "err_msg_hw";
+const char* const SENSOR_ATTR_SENSOR_ERR_BIN = "err_bin_sensor";
+const char* const SENSOR_ATTR_HW_ERR_BIN = "err_bin_hw";
 
 const char* const EMPTY = "";
 
@@ -33,6 +34,7 @@ inline void insert(HomerSensorDump& map,
     map.insert({name, std::to_string(value)});
 }
 
+// Because clion goes crazy if I make this insert call on site.
 inline void insert_str(HomerSensorDump& map,
                        const char* name,
                        const char* value) noexcept
@@ -40,6 +42,7 @@ inline void insert_str(HomerSensorDump& map,
     map.insert({name, value});
 }
 
+// Because clion goes crazy if I make this insert call on site.
 inline void insert_str(HomerSensorDump& map,
                        const std::string& name,
                        const std::string& value) noexcept
@@ -47,7 +50,13 @@ inline void insert_str(HomerSensorDump& map,
     map.insert({name, value});
 }
 
-std::string to_json(const HomerSensorDump& map) noexcept;
+// Because clion goes crazy if I make this insert call on site.
+template<typename T>
+inline void push_back(std::vector<T>& vector,
+                      const T& value) noexcept
+{
+    vector.push_back(value);
+}
 
 }
 
@@ -75,6 +84,9 @@ public:
 
     HomerSensorDump dump(bool include_name = true) const noexcept;
 
+    void influxdb(std::vector<std::string>& measurements) const noexcept;
+
+
     const HwErr& get_error() const noexcept;
 
     HwErr& _get_error() noexcept;
@@ -89,9 +101,11 @@ public:
 protected:
     explicit HomerSensorData(const char* name) noexcept;
 
+
     virtual void do_dump(HomerSensorDump& map) const noexcept = 0;
 
     virtual void do_dump(std::stringstream& ss) const noexcept = 0;
+
 
     virtual const char* do_hw_err_to_str(esp_err_t err) const noexcept;
 

@@ -5,33 +5,9 @@
 #include "homer_util.hpp"
 #include "homer_sensor.hpp"
 
+
 using std::uint64_t;
 
-
-namespace homer1 {
-
-std::string to_json(const HomerSensorDump& map) noexcept
-{
-    const size_t max = map.size() - 1;
-    size_t i{0};
-
-    std::string value{"{"};
-    for (const auto& item: map) {
-        value += "\n\"";
-        value += item.first;
-        value += "\" : \"";
-        value += item.second;
-        value += '"';
-        if (i < max)
-            value += ',';
-        i++;
-    }
-    value += "\n}";
-
-    return value;
-}
-
-}
 
 namespace homer1 {
 
@@ -60,8 +36,8 @@ HomerSensorDump HomerSensorData::dump(const bool include_name) const noexcept
 
     insert(map, SENSOR_ATTR_HW_ERR, this->error.hardware_err());
     insert(map, SENSOR_ATTR_SENSOR_ERR, this->error.sensor_err());
-    insert_str(map, SENSOR_ATTR_SENSOR_ERR_MSG, this->hw_err_to_str());
-    insert_str(map, SENSOR_ATTR_HW_ERR_MSG, this->sensor_err_to_str());
+    insert_str(map, SENSOR_ATTR_SENSOR_ERR_MSG, this->sensor_err_to_str());
+    insert_str(map, SENSOR_ATTR_HW_ERR_MSG, this->hw_err_to_str());
     insert_str(map, SENSOR_ATTR_SENSOR_ERR_BIN, uint64_to_bin(this->error.sensor_err(), true));
     insert_str(map, SENSOR_ATTR_HW_ERR_BIN, uint64_to_bin(this->error.hardware_err(), true));
 
@@ -77,6 +53,29 @@ HomerSensorDump HomerSensorData::dump(const bool include_name) const noexcept
         insert_str(named_map, this->name() + UNDERSCORE + item.first, item.second);
 
     return named_map;
+}
+
+void HomerSensorData::influxdb(std::vector<std::string>& measurements) const noexcept
+{
+    for (const auto& item: this->dump(false)) {
+        const auto len = item.second.length();
+        const auto has_value = len > 0;
+        const auto first_is_alpha = has_value && isalpha(item.second[0]);
+        const auto is_binary_repr = len > 1 && item.second[0] == '0' && item.second[1] == 'b';
+
+        std::string value = !has_value || first_is_alpha || is_binary_repr
+                            ? '"' + item.second + '"'
+                            : item.second;
+
+        std::string str = item.first     // measurement name
+                          + ",sensor="   // tag
+                          + this->_name  // tag value
+                          + " "
+                          + "value="     // field
+                          + value; // field value
+
+        push_back(measurements, str);
+    }
 }
 
 
