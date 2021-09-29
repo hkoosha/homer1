@@ -25,3 +25,8 @@ Some BMP180 code stolen from: https://github.com/krzychb/bmp180-tests [APACHE-2.
 
 Some S8 code stolen from: https://github.com/SFeli/ESP32_S8/blob/master/ESP32_S8_01.ino
 
+### Screenshots
+
+![InfluxDB](screenshots/influxdb.png)
+
+![esp32 output](screenshots/esp32_output.png)
