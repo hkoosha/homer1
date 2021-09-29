@@ -17,15 +17,13 @@ Want something proper? have a look at https://gitlab.com/UncleRus/esp-idf-lib
 - SHT3X takes no calibration.
 - Sensor modes are not configurable, everything about sensor configuration is hard-coded.
 
-
-
-### References
+#### References
 
 Some BMP180 code stolen from: https://github.com/krzychb/bmp180-tests [APACHE-2.0]
 
 Some S8 code stolen from: https://github.com/SFeli/ESP32_S8/blob/master/ESP32_S8_01.ino
 
-### Screenshots
+## Screenshots
 
 ![InfluxDB](screenshots/influxdb.png)
 
