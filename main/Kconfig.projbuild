@@ -24,5 +24,18 @@ menu "Homer1 Configuration"
         help
             InfluxDB URL
 
+    config MY_INFLUXDB_ORG
+        string "InfluxDB org"
+        default "my_org"
+        help
+            InfluxDB org
+
+    config MY_INFLUXDB_BUCKET
+        string "InfluxDB bucket"
+        default "my_bucket"
+        help
+            InfluxDB bucket
+
+
 endmenu
 

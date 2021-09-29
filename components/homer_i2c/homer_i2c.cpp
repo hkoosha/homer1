@@ -11,7 +11,7 @@ namespace homer1 {
 
 namespace {
 
-const char* TAG = "homer_i2c";
+const char* const TAG = "homer_i2c";
 
 }
 

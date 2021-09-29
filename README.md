@@ -1,5 +1,5 @@
 ## What?
-A project to read out these sensors connected to ESP32 and print over serial.
+A project to read out sensors connected to ESP32 and write to InfluxDB.
 ESP-IDF based.
 
 Want something proper? have a look at https://gitlab.com/UncleRus/esp-idf-lib
@@ -18,6 +18,8 @@ Want something proper? have a look at https://gitlab.com/UncleRus/esp-idf-lib
 - Sensor modes are not configurable, everything about sensor configuration is hard-coded.
 
 
+
+### References
 
 Some BMP180 code stolen from: https://github.com/krzychb/bmp180-tests [APACHE-2.0]
 

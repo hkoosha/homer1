@@ -84,7 +84,9 @@ const char* err_to_string(const uint64_t err) noexcept
 namespace homer1 {
 
 namespace {
-const char* HwErrTag = "HwErr";
+
+const char* const HwErrTag = "HwErr";
+
 }
 
 HwErr& HwErr::operator=(const HwErr& other) noexcept

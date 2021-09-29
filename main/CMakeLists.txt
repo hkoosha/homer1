@@ -2,10 +2,7 @@
 
 idf_component_register(
         SRCS
-
             "homer1.cpp"
-            "my_init.hpp"
-            "my_init.cpp"
 
         INCLUDE_DIRS
             "."
@@ -15,4 +12,5 @@ idf_component_register(
             homer_sensors
             homer_util
             nvs_flash
+            esp_http_client
 )
