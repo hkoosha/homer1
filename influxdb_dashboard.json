@@ -687,7 +687,7 @@
     "type": "view",
     "id": "08385434f347f000",
     "attributes": {
-     "name": "Name this Cell",
+     "name": "Temperature",
      "properties": {
       "shape": "chronograf-v2",
       "queries": [
