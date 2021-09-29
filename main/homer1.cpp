@@ -26,6 +26,7 @@ using std::uint16_t;
 using std::uint32_t;
 
 
+// SENSORS
 namespace {
 
 const char* const MY_TAG = "homer1";
@@ -404,16 +405,25 @@ bool push(const char* const url,
           std::stringstream& ss)
 {
     const auto body = ss.str();
+    const auto len = body.length();
 
-    if (body.length() < 1) {
+    if (len < 1) {
         ESP_LOGW(PUSHER_TAG, "nothing to push");
         return false;
     }
 
+    const auto len_int = static_cast<int>(body.length());
+    if ((len_int - len) != 0) {
+        ESP_LOGE(PUSHER_TAG, "body too big");
+        return false;
+    }
 
     esp_http_client_config_t config;
     std::memset(&config, 0, sizeof(esp_http_client_config_t));
     config.url = url;
+    config.disable_auto_redirect = false;
+    config.max_redirection_count = 10;
+    config.keep_alive_enable = false;
 
     auto client = esp_http_client_init(&config);
     if (!client) {
@@ -423,57 +433,31 @@ bool push(const char* const url,
 
     esp_err_t err;
 
-    err = esp_http_client_set_method(client, HTTP_METHOD_POST);
-    if (err != ESP_OK) {
-        ESP_LOGE(PUSHER_TAG, "http set method failed");
-        return false;
-    }
-
-    err = esp_http_client_set_header(client, "Authorization", token_header);
-    if (err != ESP_OK) {
-        ESP_LOGE(PUSHER_TAG, "http set auth header failed");
-        return false;
-    }
-
-    err = esp_http_client_set_header(client, "Content-Type", "text/plain; charset=utf-8");
-    if (err != ESP_OK) {
-        ESP_LOGE(PUSHER_TAG, "http set content type header failed");
-        return false;
-    }
-
-    err = esp_http_client_set_header(client, "Accept", "application/json");
-    if (err != ESP_OK) {
-        ESP_LOGE(PUSHER_TAG, "http set accept header failed");
-        return false;
-    }
-
-    const auto len = static_cast<int>(body.length());
-    if ((len - body.length()) != 0) {
-        ESP_LOGE(PUSHER_TAG, "body too big");
-        return false;
-    }
+    ESP_ERROR_CHECK(esp_http_client_set_method(client, HTTP_METHOD_POST));
+    ESP_ERROR_CHECK(esp_http_client_set_header(client, "Authorization", token_header));
+    ESP_ERROR_CHECK(esp_http_client_set_header(client, "Content-Type", "text/plain; charset=utf-8"));
+    ESP_ERROR_CHECK(esp_http_client_set_header(client, "Accept", "application/json"));
 
     ESP_LOGI(PUSHER_TAG, "sending http post request to url=%s", url);
-    err = esp_http_client_set_post_field(client, body.c_str(), len);
-    if (err != ESP_OK) {
-        ESP_LOGE(PUSHER_TAG, "HTTP REQUEST FAILED! %d", err);
-        return false;
-    }
+    ESP_ERROR_CHECK(err = esp_http_client_set_post_field(client, body.c_str(), len_int));
 
+    const auto then = now_millis();
     err = esp_http_client_perform(client);
-    if (err != ESP_OK) {
-        ESP_LOGE(PUSHER_TAG, "HTTP REQUEST FAILED! %d", err);
+    const auto spent = now_millis() - then;
+    const auto status_code = esp_http_client_get_status_code(client);
+
+    ESP_ERROR_CHECK(esp_http_client_cleanup(client));
+
+    ESP_LOGI(PUSHER_TAG, "Http request duration: %llu" "ms" " response_status_code=%d", spent, status_code);
+
+    if (err != ESP_OK || (status_code < 200 || 299 < status_code)) {
+        ESP_LOGE(PUSHER_TAG, "HTTP REQUEST FAILED!, err=%d status_code=%d", err, status_code);
         return false;
     }
-
-    err = esp_http_client_cleanup(client);
-    if (err != ESP_OK) {
-        ESP_LOGE(PUSHER_TAG, "http client cleanup failed");
-        return false;
+    else {
+        ESP_LOGI(PUSHER_TAG, "wrote bytes=%d", len);
+        return true;
     }
-
-    ESP_LOGI(PUSHER_TAG, "wrote bytes=%d", len);
-    return true;
 }
 
 void push_measurements(Sensor* sensor) noexcept
@@ -515,6 +499,7 @@ void push_measurements(Sensor* sensor) noexcept
 
 }
 
+// WIFI
 namespace {
 
 const char* const WIFI_TAG = "my_scan";
@@ -582,6 +567,7 @@ void my_wifi_init(const char* ssid,
 
 }
 
+// UART & I2C
 namespace {
 
 const char* const UART_TAG = "my_uart";
@@ -650,6 +636,7 @@ void my_i2c_init(const i2c_port_t port,
 }
 }
 
+// NVS
 namespace {
 
 const char* const NVS_TAG = "my_nvs";
