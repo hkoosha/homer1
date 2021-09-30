@@ -117,7 +117,7 @@ public:
     SensorPeripheral peripheral;
     SemaphoreHandle_t mutex;
     volatile bool loop;
-    httpd_handle_t prometheus_server{nullptr};
+    __attribute__((unused)) httpd_handle_t prometheus_server{nullptr};
 
 
     Sensor& operator=(const Sensor& other) = delete;
@@ -473,7 +473,7 @@ bool push(const char* const url,
     ESP_LOGI(PUSHER_TAG, "Http request duration: %llu" "ms" " response_status_code=%d", spent, status_code);
 
     if (err != ESP_OK || (status_code < 200 || 299 < status_code)) {
-        ESP_LOGE(PUSHER_TAG, "HTTP REQUEST FAILED!, err=%d status_code=%d", err, status_code);
+        ESP_LOGE(PUSHER_TAG, "HTTP REQUEST FAILED!, err=%s status_code=%d", esp_err_to_name(err), status_code);
         return false;
     }
     else {
@@ -520,23 +520,17 @@ void push_measurements(Sensor* sensor) noexcept
 }
 
 
-esp_err_t prometheus_handler(httpd_req_t* req) noexcept
-{
-    const auto* sensor = static_cast<Sensor*>(req->user_ctx);
-    const auto ss = sensor->dump_prometheus();
-    const auto str = ss.str();
-    return httpd_resp_send(req, str.c_str(), HTTPD_RESP_USE_STRLEN);
-}
-
 httpd_handle_t prometheus_http_server(Sensor* sensor)
 {
     esp_err_t err;
 
-    auto config = my_get_httpd_config(80);
+    const uint16_t port = 80;
+
+    auto config = my_get_httpd_config(port);
     httpd_handle_t server = nullptr;
     err = httpd_start(&server, &config);
     if (err != ESP_OK) {
-        ESP_LOGE(MY_TAG, "registering http server failed=%d", err);
+        ESP_LOGE(MY_TAG, "registering http server failed=%s", esp_err_to_name(err));
         throw std::runtime_error{"registering http server failed"};
     }
 
@@ -544,18 +538,28 @@ httpd_handle_t prometheus_http_server(Sensor* sensor)
     prometheus_handler_uri.uri = "/metrics";
     prometheus_handler_uri.method = HTTP_GET;
     prometheus_handler_uri.user_ctx = sensor;
-    prometheus_handler_uri.handler = prometheus_handler;
+    prometheus_handler_uri.handler = [](httpd_req_t* req) -> esp_err_t {
+        const auto* sensor = static_cast<Sensor*>(req->user_ctx);
+        const auto ss = sensor->dump_prometheus();
+        const auto httpd_err = httpd_resp_send(req, ss.str().c_str(), HTTPD_RESP_USE_STRLEN);
+        if (httpd_err == ESP_OK)
+            ESP_LOGI(MY_TAG, "http request served on /metrics");
+        else
+            ESP_LOGW(MY_TAG, "http request failed on /metrics, err=%s", esp_err_to_name(httpd_err));
+        return httpd_err;
+    };
     err = httpd_register_uri_handler(server, &prometheus_handler_uri);
     if (err != ESP_OK) {
-        ESP_LOGE(MY_TAG, "registering http handler failed=%d", err);
+        ESP_LOGE(MY_TAG, "registering http handler failed=%s", esp_err_to_name(err));
 
         err = httpd_stop(server);
         if (err != ESP_OK)
-            ESP_LOGE(MY_TAG, "stopping http server failed=%d", err);
+            ESP_LOGE(MY_TAG, "stopping http server failed=%s", esp_err_to_name(err));
 
         throw std::runtime_error{"registering http handler failed"};
     }
 
+    ESP_LOGI(MY_TAG, "http server started on port: %d", port);
     return server;
 }
 
