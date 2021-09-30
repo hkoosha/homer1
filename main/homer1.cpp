@@ -13,13 +13,14 @@
 #include "driver/uart.h"
 #include "driver/i2c.h"
 #include "esp_http_client.h"
+#include "esp_http_server.h"
 
 #include "homer_util.hpp"
 #include "s8.hpp"
 #include "pms5003.hpp"
 #include "bmp180.hpp"
 #include "sht3x.hpp"
-#include "homer_wifi.c"
+#include "homer_helper.c"
 
 using namespace homer1;
 
@@ -116,6 +117,7 @@ public:
     SensorPeripheral peripheral;
     SemaphoreHandle_t mutex;
     volatile bool loop;
+    httpd_handle_t prometheus_server{nullptr};
 
 
     Sensor& operator=(const Sensor& other) = delete;
@@ -177,7 +179,7 @@ public:
     }
 
 
-    void dump_pretty_print(std::stringstream& ss) noexcept
+    void dump_pretty_print(std::stringstream& ss) const noexcept
     {
         this->lock();
 
@@ -220,7 +222,7 @@ public:
         this->unlock();
     }
 
-    __attribute__((unused)) void dump_map(std::stringstream& ss) noexcept
+    __attribute__((unused)) void dump_map(std::stringstream& ss) const noexcept
     {
         this->lock();
         const HomerSensorDump pms5003_dump = this->data.pms5003.dump();
@@ -246,7 +248,7 @@ public:
             ss << item.first << "=" << item.second << std::endl;
     }
 
-    void dump_influxdb(std::stringstream& ss) noexcept
+    void dump_influxdb(std::stringstream& ss) const noexcept
     {
         std::vector<std::string> measurements{};
 
@@ -263,17 +265,34 @@ public:
             ss << item << std::endl;
     }
 
+    std::stringstream dump_prometheus() const noexcept
+    {
+        std::stringstream ss{};
+
+        this->lock();
+        this->data.pms5003.prometheus(ss);
+        this->data.bmp180.prometheus(ss);
+        this->data.s8.prometheus(ss);
+        this->data.sht3x.prometheus(ss);
+        this->unlock();
+
+        return ss;
+    }
+
 private:
-    void lock() noexcept
+    void lock() const noexcept
     {
         xSemaphoreTake(this->mutex, portMAX_DELAY);
     }
 
-    void unlock() noexcept
+    void unlock() const noexcept
     {
         xSemaphoreGive(this->mutex);
     }
 };
+
+
+httpd_handle_t prometheus_http_server(Sensor* sensor);
 
 
 Sensor* make_sensor()
@@ -313,6 +332,8 @@ Sensor* make_sensor()
         ESP_LOGE(MY_TAG, "could not allocate mutex");
         throw std::runtime_error("could not allocate mutex");
     }
+
+    sensor->prometheus_server = prometheus_http_server(sensor);
 
     return sensor;
 }
@@ -498,6 +519,46 @@ void push_measurements(Sensor* sensor) noexcept
     );
 }
 
+
+esp_err_t prometheus_handler(httpd_req_t* req) noexcept
+{
+    const auto* sensor = static_cast<Sensor*>(req->user_ctx);
+    const auto ss = sensor->dump_prometheus();
+    const auto str = ss.str();
+    return httpd_resp_send(req, str.c_str(), HTTPD_RESP_USE_STRLEN);
+}
+
+httpd_handle_t prometheus_http_server(Sensor* sensor)
+{
+    esp_err_t err;
+
+    auto config = my_get_httpd_config(80);
+    httpd_handle_t server = nullptr;
+    err = httpd_start(&server, &config);
+    if (err != ESP_OK) {
+        ESP_LOGE(MY_TAG, "registering http server failed=%d", err);
+        throw std::runtime_error{"registering http server failed"};
+    }
+
+    httpd_uri_t prometheus_handler_uri{};
+    prometheus_handler_uri.uri = "/metrics";
+    prometheus_handler_uri.method = HTTP_GET;
+    prometheus_handler_uri.user_ctx = sensor;
+    prometheus_handler_uri.handler = prometheus_handler;
+    err = httpd_register_uri_handler(server, &prometheus_handler_uri);
+    if (err != ESP_OK) {
+        ESP_LOGE(MY_TAG, "registering http handler failed=%d", err);
+
+        err = httpd_stop(server);
+        if (err != ESP_OK)
+            ESP_LOGE(MY_TAG, "stopping http server failed=%d", err);
+
+        throw std::runtime_error{"registering http handler failed"};
+    }
+
+    return server;
+}
+
 }
 
 // WIFI
@@ -535,7 +596,7 @@ void my_wifi_init(const char* ssid,
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    wifi_init_config_t cfg = my_get_wifi_cfg();
+    auto cfg = my_get_wifi_cfg();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
     ESP_ERROR_CHECK(esp_event_handler_instance_register(
@@ -657,6 +718,7 @@ void my_nvs_init()
 }
 
 }
+
 
 extern "C" void app_main(void)
 {

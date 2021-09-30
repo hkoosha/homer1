@@ -132,6 +132,7 @@ void SensorData::do_dump(HomerSensorDump& map) const noexcept
     insert(map, SENSOR_ATTR_TEMPERATURE, this->temperature);
 }
 
+
 void SensorData::invalidate() noexcept
 {
     this->pressure = std::numeric_limits<uint32_t>::max();

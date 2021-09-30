@@ -82,9 +82,11 @@ public:
 
     void dump(std::stringstream& ss) const noexcept;
 
-    HomerSensorDump dump(bool include_name = true) const noexcept;
+    HomerSensorDump dump(bool prefix_with_sensor_name = true) const noexcept;
 
     void influxdb(std::vector<std::string>& measurements) const noexcept;
+
+    void prometheus(std::stringstream& ss) const noexcept;
 
 
     const HwErr& get_error() const noexcept;
@@ -105,7 +107,6 @@ protected:
     virtual void do_dump(HomerSensorDump& map) const noexcept = 0;
 
     virtual void do_dump(std::stringstream& ss) const noexcept = 0;
-
 
     virtual const char* do_hw_err_to_str(esp_err_t err) const noexcept;
 

@@ -27,7 +27,7 @@ void HomerSensorData::dump(std::stringstream& ss) const noexcept
     this->do_dump(ss);
 }
 
-HomerSensorDump HomerSensorData::dump(const bool include_name) const noexcept
+HomerSensorDump HomerSensorData::dump(const bool prefix_with_sensor_name) const noexcept
 {
     auto map = HomerSensorDump{};
 
@@ -44,7 +44,7 @@ HomerSensorDump HomerSensorData::dump(const bool include_name) const noexcept
     if (this->error.is_ok())
         this->do_dump(map);
 
-    if (!include_name)
+    if (!prefix_with_sensor_name)
         return map;
 
     const std::string UNDERSCORE = "_";
@@ -76,6 +76,36 @@ void HomerSensorData::influxdb(std::vector<std::string>& measurements) const noe
 
         push_back(measurements, str);
     }
+}
+
+void HomerSensorData::prometheus(std::stringstream& ss) const noexcept
+{
+    ss << "# HELP time_to_read_seconds Time taken to read the sensor\n"
+          "# TYPE time_to_read_seconds gauge\n"
+          "time_to_read_seconds{sensor=\""
+       << this->_name
+       << "\"} "
+       << (static_cast<double>(this->time_to_read) / 1000)
+       << "\n";
+
+    const auto dump = this->dump(false);
+    for (const auto& item: dump)
+        if (item.first == "TTR" ||
+            item.first == "err_bin_hw" || item.first == "err_bin_sensor" ||
+            item.first == "err_msg_hw" || item.first == "err_msg_sensor")
+            continue;
+        else
+            ss << "# HELP "
+               << item.first
+               << " sensor value\n# TYPE "
+               << item.first
+               << " gauge\n"
+               << item.first
+               << "{sensor=\""
+               << this->_name
+               << "\"} "
+               << item.second
+               << "\n";
 }
 
 
@@ -174,5 +204,6 @@ HomerSensorData::HomerSensorData(HomerSensorData&& other) noexcept:
         _name{other._name}
 {
 }
+
 
 }

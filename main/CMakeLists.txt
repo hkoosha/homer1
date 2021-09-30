@@ -3,7 +3,7 @@
 idf_component_register(
         SRCS
             "homer1.cpp"
-            "homer_wifi.c"
+            "homer_helper.c"
 
         INCLUDE_DIRS
             "."
@@ -14,4 +14,5 @@ idf_component_register(
             homer_util
             nvs_flash
             esp_http_client
+            esp_http_server
 )
