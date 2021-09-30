@@ -35,6 +35,13 @@ InfluxDB:
 <br>
 <br>
 
+Grafana:
+
+![Grafana](screenshots/grafana.png)
+<br>
+<br>
+
 Serial output:
 
 ![esp32 output](screenshots/esp32_output.png)
+
