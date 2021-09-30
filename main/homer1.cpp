@@ -117,7 +117,7 @@ public:
     SensorPeripheral peripheral;
     SemaphoreHandle_t mutex;
     volatile bool loop;
-    __attribute__((unused)) httpd_handle_t prometheus_server{nullptr};
+    httpd_handle_t prometheus_server{nullptr};
 
 
     Sensor& operator=(const Sensor& other) = delete;
