@@ -27,6 +27,9 @@ https://github.com/krzychb/bmp180-tests [APACHE-2.0]
 Some S8 code stolen from:<br>
 https://github.com/SFeli/ESP32_S8/blob/master/ESP32_S8_01.ino
 
+Some Prometheus ideas got from:<br>
+https://github.com/polyfloyd/esp32-sensornode
+
 ## Screenshots
 
 InfluxDB:

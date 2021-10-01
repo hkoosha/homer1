@@ -14,6 +14,7 @@
 #include "driver/i2c.h"
 #include "esp_http_client.h"
 #include "esp_http_server.h"
+#include "esp_heap_caps.h"
 
 #include "homer_util.hpp"
 #include "s8.hpp"
@@ -39,6 +40,11 @@ const uint32_t PRINT_DELAY = 30000;
 const uint32_t PRINT_INITIAL_DELAY = 5000;
 const uint32_t PUSH_DELAY = 5000;
 const uint32_t PUSH_INITIAL_DELAY = 5000;
+
+
+class Sensor;
+
+httpd_handle_t prometheus_http_server(Sensor* sensor);
 
 
 class SensorData final
@@ -114,11 +120,7 @@ class Sensor final
 {
 public:
     SensorData data;
-    SensorPeripheral peripheral;
-    SemaphoreHandle_t mutex;
-    volatile bool loop;
-    httpd_handle_t prometheus_server{nullptr};
-
+    volatile bool loop{true};
 
     Sensor& operator=(const Sensor& other) = delete;
 
@@ -128,15 +130,27 @@ public:
 
     Sensor(Sensor&& other) = delete;
 
+    ~Sensor() noexcept
+    {
+        const auto err = httpd_stop(this->prometheus_server);
+        if (err != ESP_OK)
+            ESP_LOGE(MY_TAG, "failed to close httpd server: %s", esp_err_to_name(err));
+        this->prometheus_server = nullptr;
+    }
+
 
     Sensor(SensorData&& data,
-           SensorPeripheral&& peripheral,
-           SemaphoreHandle_t&& mutex) noexcept:
+           SensorPeripheral&& peripheral) :
             data{std::move(data)},
-            peripheral{std::move(peripheral)},
-            mutex{mutex},
-            loop{true}
+            peripheral{std::move(peripheral)}
     {
+        this->mutex = xSemaphoreCreateMutex();
+        if (!this->mutex)
+            throw std::runtime_error("could not allocate mutex");
+
+        this->prometheus_server = prometheus_http_server(this);
+        if (!this->prometheus_server)
+            throw std::runtime_error("could not create server");
     }
 
 
@@ -259,6 +273,7 @@ public:
         this->data.sht3x.influxdb(measurements);
         this->unlock();
 
+        // Not needed for InfluxDB but makes cURLing it user-friendly.
         std::sort(measurements.begin(), measurements.end());
 
         for (const auto& item: measurements)
@@ -280,6 +295,10 @@ public:
     }
 
 private:
+    SensorPeripheral peripheral;
+    SemaphoreHandle_t mutex;
+    httpd_handle_t prometheus_server;
+
     void lock() const noexcept
     {
         xSemaphoreTake(this->mutex, portMAX_DELAY);
@@ -290,9 +309,6 @@ private:
         xSemaphoreGive(this->mutex);
     }
 };
-
-
-httpd_handle_t prometheus_http_server(Sensor* sensor);
 
 
 Sensor* make_sensor()
@@ -318,22 +334,13 @@ Sensor* make_sensor()
                                     Sht3x::I2C_DELAY
                             }
                     }}
-            },
-            nullptr
+            }
     };
 
     if (!sensor) {
         ESP_LOGE(MY_TAG, "could not allocate sensor");
         throw std::runtime_error("could not allocate sensor");
     }
-
-    sensor->mutex = xSemaphoreCreateMutex();
-    if (!sensor->mutex) {
-        ESP_LOGE(MY_TAG, "could not allocate mutex");
-        throw std::runtime_error("could not allocate mutex");
-    }
-
-    sensor->prometheus_server = prometheus_http_server(sensor);
 
     return sensor;
 }
@@ -436,7 +443,7 @@ bool push(const char* const url,
 
     const auto len_int = static_cast<int>(body.length());
     if ((len_int - len) != 0) {
-        ESP_LOGE(PUSHER_TAG, "body too big");
+        ESP_LOGE(PUSHER_TAG, "body too large");
         return false;
     }
 
@@ -467,10 +474,9 @@ bool push(const char* const url,
     err = esp_http_client_perform(client);
     const auto spent = now_millis() - then;
     const auto status_code = esp_http_client_get_status_code(client);
+    ESP_LOGI(PUSHER_TAG, "Http request duration: %llu" "ms" " response_status_code=%d", spent, status_code);
 
     ESP_ERROR_CHECK(esp_http_client_cleanup(client));
-
-    ESP_LOGI(PUSHER_TAG, "Http request duration: %llu" "ms" " response_status_code=%d", spent, status_code);
 
     if (err != ESP_OK || (status_code < 200 || 299 < status_code)) {
         ESP_LOGE(PUSHER_TAG, "HTTP REQUEST FAILED!, err=%s status_code=%d", esp_err_to_name(err), status_code);
@@ -506,6 +512,30 @@ void push_measurements(Sensor* sensor) noexcept
                 do {
                     std::stringstream ss;
                     sensor0->dump_influxdb(ss);
+
+                    ss << "free_rtos_tasks,device=ESP32 value="
+                       << uxTaskGetNumberOfTasks()
+                       << "\nwifi_rssi,device=ESP32 value=";
+
+                    wifi_ap_record_t ap_rec;
+                    if (esp_wifi_sta_get_ap_info(&ap_rec) == ESP_OK) {
+                        ss << std::to_string(ap_rec.rssi);
+                    }
+                    else {
+                        ESP_LOGV(MY_TAG, "could not get wifi info.");
+                        ss << "NaN";
+                    }
+                    ss << "\n";
+
+                    multi_heap_info_t heap_info;
+                    heap_caps_get_info(&heap_info, MALLOC_CAP_DEFAULT);
+                    ss << "heap_free_bytes,device=ESP32 value="
+                       << heap_info.total_free_bytes
+                       << "\n";
+                    ss << "heap_alloc_bytes,device=ESP32 value="
+                       << heap_info.total_allocated_bytes
+                       << "\n";
+
                     push(url_str, token_header_str, ss);
 
                     my_sleep_millis(PUSH_DELAY);
@@ -519,6 +549,57 @@ void push_measurements(Sensor* sensor) noexcept
     );
 }
 
+
+esp_err_t prometheus_http_server_handler(httpd_req_t* req) noexcept
+{
+    const auto* sensor = static_cast<Sensor*>(req->user_ctx);
+
+    auto ss = sensor->dump_prometheus();
+
+    ss << "# HELP free_rtos_tasks FreeRTOS total tasks\n"
+          "# TYPE free_rtos_tasks gauge\n"
+          "free_rtos_tasks "
+       << uxTaskGetNumberOfTasks()
+       << "\n";
+
+    ss << "# HELP uptime_seconds uptime\n"
+          "# TYPE uptime_seconds gauge\n"
+          "uptime_seconds "
+       << (now_millis() * 1000)
+       << "\n";
+
+    ss << "# HELP wifi_rssi Wifi strength\n"
+          "# TYPE wifi_rssi gauge\n"
+          "wifi_rssi ";
+    wifi_ap_record_t ap_rec;
+    if (esp_wifi_sta_get_ap_info(&ap_rec) == ESP_OK) {
+        ss << std::to_string(ap_rec.rssi);
+    }
+    else {
+        ESP_LOGV(MY_TAG, "could not get wifi info.");
+        ss << "NaN";
+    }
+    ss << "\n";
+
+    multi_heap_info_t heap_info;
+    heap_caps_get_info(&heap_info, MALLOC_CAP_DEFAULT);
+    ss << "# HELP heap_free_bytes Heap free bytes\n"
+          "# TYPE heap_free_bytes gauge\n"
+          "heap_free_bytes "
+       << heap_info.total_free_bytes;
+    ss << "# HELP heap_alloc_bytes Heap allocated bytes\n"
+          "# TYPE heap_alloc_bytes gauge\n"
+          "heap_alloc_bytes "
+       << heap_info.total_allocated_bytes
+       << "\n";
+
+    const auto httpd_err = httpd_resp_send(req, ss.str().c_str(), HTTPD_RESP_USE_STRLEN);
+    if (httpd_err == ESP_OK)
+        ESP_LOGI(MY_TAG, "http request served on /metrics");
+    else
+        ESP_LOGW(MY_TAG, "http request failed on /metrics, err=%s", esp_err_to_name(httpd_err));
+    return httpd_err;
+}
 
 httpd_handle_t prometheus_http_server(Sensor* sensor)
 {
@@ -538,16 +619,7 @@ httpd_handle_t prometheus_http_server(Sensor* sensor)
     prometheus_handler_uri.uri = "/metrics";
     prometheus_handler_uri.method = HTTP_GET;
     prometheus_handler_uri.user_ctx = sensor;
-    prometheus_handler_uri.handler = [](httpd_req_t* req) -> esp_err_t {
-        const auto* sensor = static_cast<Sensor*>(req->user_ctx);
-        const auto ss = sensor->dump_prometheus();
-        const auto httpd_err = httpd_resp_send(req, ss.str().c_str(), HTTPD_RESP_USE_STRLEN);
-        if (httpd_err == ESP_OK)
-            ESP_LOGI(MY_TAG, "http request served on /metrics");
-        else
-            ESP_LOGW(MY_TAG, "http request failed on /metrics, err=%s", esp_err_to_name(httpd_err));
-        return httpd_err;
-    };
+    prometheus_handler_uri.handler = prometheus_http_server_handler;
     err = httpd_register_uri_handler(server, &prometheus_handler_uri);
     if (err != ESP_OK) {
         ESP_LOGE(MY_TAG, "registering http handler failed=%s", esp_err_to_name(err));
@@ -573,7 +645,7 @@ const char* const WIFI_TAG = "my_scan";
 void my_wifi_event_handler(__attribute__((unused)) void* arg,
                            esp_event_base_t event_base,
                            int32_t event_id,
-                           void* event_data)
+                           void* event_data) noexcept
 {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         ESP_LOGI(WIFI_TAG, "start");
@@ -584,9 +656,8 @@ void my_wifi_event_handler(__attribute__((unused)) void* arg,
         esp_wifi_connect();
     }
     else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
-        auto* event = (ip_event_got_ip_t*) event_data;
-        ESP_LOGI(WIFI_TAG, "got ip:"
-                IPSTR, IP2STR(&event->ip_info.ip));
+        const auto* event = (ip_event_got_ip_t*) event_data;
+        ESP_LOGI(WIFI_TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
     }
     else {
         ESP_LOGI(WIFI_TAG, "unknown event");
@@ -594,7 +665,7 @@ void my_wifi_event_handler(__attribute__((unused)) void* arg,
 }
 
 void my_wifi_init(const char* ssid,
-                  const char* password)
+                  const char* password) noexcept
 {
     ESP_LOGI(WIFI_TAG, "wifi init...");
     ESP_ERROR_CHECK(esp_netif_init());
@@ -645,7 +716,7 @@ const uint32_t MY_I2C_CLOCK_SPEED = 100000;
 void my_uart_init_8n1(const uart_port_t uart_num,
                       const int tx_pin,
                       const int rx_pin,
-                      const uint16_t baudrate = 9600)
+                      const uint16_t baudrate = 9600) noexcept
 {
     ESP_LOGI(UART_TAG, "UART num=%d tx=%d rx=%d baudrate=%d 8N1 buffer=%d",
              uart_num, tx_pin, rx_pin, baudrate, UART_BUFFER_SIZE);
@@ -670,7 +741,6 @@ void my_uart_init_8n1(const uart_port_t uart_num,
             UART_PIN_NO_CHANGE
     ));
 
-
     ESP_ERROR_CHECK(uart_driver_install(
             uart_num,
             UART_BUFFER_SIZE,
@@ -684,7 +754,7 @@ void my_uart_init_8n1(const uart_port_t uart_num,
 void my_i2c_init(const i2c_port_t port,
                  const int sda_pin,
                  const int scl_pin,
-                 const uint32_t clock_speed)
+                 const uint32_t clock_speed) noexcept
 {
     ESP_LOGI(I2C_TAG, "I2C num=%d sda=%d scl=%d clock=%d", port, sda_pin, scl_pin, clock_speed);
 
@@ -700,6 +770,7 @@ void my_i2c_init(const i2c_port_t port,
     ESP_ERROR_CHECK(i2c_param_config(port, &i2c_conf));
     ESP_ERROR_CHECK(i2c_driver_install(port, I2C_MODE_MASTER, 0, 0, 0));
 }
+
 }
 
 // NVS
@@ -707,7 +778,7 @@ namespace {
 
 const char* const NVS_TAG = "my_nvs";
 
-void my_nvs_init()
+void my_nvs_init() noexcept
 {
     ESP_LOGI(NVS_TAG, "NVS init...");
 
