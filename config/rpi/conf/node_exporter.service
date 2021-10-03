@@ -1,0 +1,10 @@
+[Unit]
+Description=Node Exporter
+
+[Service]
+EnvironmentFile=-/etc/sysconfig/node_exporter
+ExecStart=/usr/bin/node_exporter --collector.ksmd --collector.meminfo_numa --collector.mountstats --collector.network_route --collector.processes --collector.systemd --collector.wifi  $OPTIONS
+
+[Install]
+WantedBy=multi-user.target
+

@@ -587,7 +587,7 @@ esp_err_t prometheus_http_server_handler(httpd_req_t* req) noexcept
           "# TYPE heap_free_bytes gauge\n"
           "heap_free_bytes "
        << heap_info.total_free_bytes;
-    ss << "# HELP heap_alloc_bytes Heap allocated bytes\n"
+    ss << "\n# HELP heap_alloc_bytes Heap allocated bytes\n"
           "# TYPE heap_alloc_bytes gauge\n"
           "heap_alloc_bytes "
        << heap_info.total_allocated_bytes

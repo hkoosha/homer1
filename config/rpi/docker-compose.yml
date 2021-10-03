@@ -1,0 +1,38 @@
+version: '3'
+
+services:
+  influxdb:
+    image: quay.io/influxdb/influxdb:v2.0.9
+    command: --reporting-disabled
+    volumes:
+      - '/opt/influxdbv2_lib:/var/lib/influxdb2:rw'
+      - '/opt/influxdbv2_root:/root/.influxdbv2:rw'
+      - '/opt/influxdbv2_dashboards:/tmp/my_dashboards'
+    network_mode: "host"
+    ports:
+      - "8086:8086"
+
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - '/opt/grafana_lib:/var/lib/grafana:rw'
+      - '/opt/grafana_share:/user/share/grafana:rw'
+      - '/opt/grafana_etc:/etc/grafana:rw'
+    network_mode: "host"
+    ports:
+      - "3000:3000"
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - '/opt/prometheus_etc/:/etc/prometheus/'
+      - '/opt/prometheus_data:/prometheus'
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    network_mode: "host"
+    ports:
+      - "9090:9090"
+
