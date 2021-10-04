@@ -131,6 +131,22 @@ node-exporter-logs: ## node-exporter-logs node exporter logs
 
 # ==============================================================================
 
+.PHONY: homer1-service-setup
+homer1-service-setup: ## homer1-service-setup setup homer1 systemd service file
+	cp conf/homer1.service /etc/systemd/system/homer1.service
+	systemctl daemon-reload
+	systemctl enable --now homer1
+
+.PHONY: homer1-service-start
+homer1-service-start: ## homer1-service-start start homer1 systemd service 
+	systemctl start homer1
+
+.PHONY: homer1-service-logs
+homer1-service-logs: ## homer1-service-logs homer1 logs
+	journalctl -xefu homer1
+
+# ==============================================================================
+#
 .PHONY: hostname
 hostname: ## hostname change hostname to whatever $MY_HOSTNAME is
 	hostnamectl set-hostname ${MY_HOSTNAME}

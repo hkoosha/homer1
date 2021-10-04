@@ -1,0 +1,9 @@
+[Unit]
+Description=Homer1
+
+[Service]
+ExecStart=/usr/bin/docker-compose -f /root/docker-compose.yml up
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,41 +1,77 @@
 menu "Homer1 Configuration"
 
+    config MY_WIFI_ENABLED
+        bool "WiFi enabled"
+        default y
+        help
+            Whether if wifi is enabled. Affects Prometheus and InfluxDB.
+
     config MY_WIFI_SSID
         string "WiFi SSID"
-        default "some_ssid"
+        default ""
         help
-            Wifi SSID
+            Wifi SSID.
 
     config MY_WIFI_PASSWORD
-        string "WiFi Password"
-        default "some_password"
+        string "WiFi password"
+        default ""
         help
-            Wifi Password
+            Wifi password.
 
     config MY_INFLUXDB_TOKEN
         string "InfluxDB token"
-        default "my_token"
+        default ""
         help
-            InfluxDB Token
+            InfluxDB token.
 
     config MY_INFLUXDB_URL
         string "InfluxDB URL"
-        default "my_url"
+        default ""
         help
-            InfluxDB URL
+            InfluxDB URL. Leave empty to disable.
 
     config MY_INFLUXDB_ORG
         string "InfluxDB org"
-        default "my_org"
+        default "homer1"
         help
-            InfluxDB org
+            InfluxDB org.
 
     config MY_INFLUXDB_BUCKET
         string "InfluxDB bucket"
-        default "my_bucket"
+        default "homer1"
         help
-            InfluxDB bucket
+            InfluxDB bucket.
 
+    config MY_PROMETHEUS_PORT
+        int "Prometheus port"
+        default 80
+        help
+            Port to serve prometheus metrics on. Zero to disable.
+
+
+    config MY_SENSOR_ENABLED_SHT3X
+        bool "SHT3X enabled"
+        default y
+        help
+            Whether if SHT3X sensor is enabled or not.
+
+    config MY_SENSOR_ENABLED_S8
+        bool "S8 enabled"
+        default y
+        help
+            Whether if S8 sensor is enabled or not.
+
+    config MY_SENSOR_ENABLED_BMP180
+        bool "BMP180 enabled"
+        default y
+        help
+            Whether if BMP180 sensor is enabled or not.
+
+    config MY_SENSOR_ENABLED_PMS5003
+        bool "PMS5003 enabled"
+        default y
+        help
+            Whether if PMS5003 sensor is enabled or not.
 
 endmenu
 
