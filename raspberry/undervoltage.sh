@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # This bash script outputs the status of your Pi and checks whether you are being throttled for undervoltage and gives you your temperature
 # Article and discussion at https://jamesachambers.com/measure-raspberry-pi-undervoltage-true-clock-speeds/
@@ -18,4 +19,12 @@
 
 # See if we are being throttled
 throttled="$(vcgencmd get_throttled)"
-echo -e "$throttled"
+#echo -e "$throttled"
+
+throttled=$(echo "$throttled" | cut -f2 -d'=')
+
+# hex to dec
+throttled=$(printf "%d" "$throttled")
+
+echo $throttled
+

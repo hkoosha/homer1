@@ -5,9 +5,9 @@ services:
     image: quay.io/influxdb/influxdb:v2.0.9
     command: --reporting-disabled
     volumes:
-      - '/opt/influxdbv2_lib:/var/lib/influxdb2:rw'
-      - '/opt/influxdbv2_root:/root/.influxdbv2:rw'
-      - '/opt/influxdbv2_dashboards:/tmp/my_dashboards'
+      - '/opt/homer1/data/influxdbv2_lib:/var/lib/influxdb2:rw'
+      - '/opt/homer1/data/influxdbv2_root:/root/.influxdbv2:rw'
+      - '/opt/homer1/data/influxdbv2_dashboards:/tmp/my_dashboards'
     network_mode: "host"
     ports:
       - "8086:8086"
@@ -15,9 +15,9 @@ services:
   grafana:
     image: grafana/grafana:latest
     volumes:
-      - '/opt/grafana_lib:/var/lib/grafana:rw'
-      - '/opt/grafana_share:/user/share/grafana:rw'
-      - '/opt/grafana_etc:/etc/grafana:rw'
+      - '/opt/homer1/data/grafana_lib:/var/lib/grafana:rw'
+      - '/opt/homer1/data/grafana_share:/user/share/grafana:rw'
+      - '/opt/homer1/data/grafana_etc:/etc/grafana:rw'
     network_mode: "host"
     ports:
       - "3000:3000"
@@ -25,8 +25,8 @@ services:
   prometheus:
     image: prom/prometheus:latest
     volumes:
-      - '/opt/prometheus_etc/:/etc/prometheus/'
-      - '/opt/prometheus_data:/prometheus'
+      - '/opt/homer1/data/prometheus_etc/:/etc/prometheus/'
+      - '/opt/homer1/data/prometheus_data:/prometheus'
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'

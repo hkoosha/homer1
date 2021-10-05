@@ -21,7 +21,7 @@ purge: ## purge kill all docker services systemwide!!! not just this docker-comp
 
 .PHONY: dontrunme
 dontrunme: ## dontrunme DELETE ALL DATA
-	rm -rf /opt/influxdbv2_root /opt/influxdbv2_lib /opt/grafana_lib /opt/grafana_share /opt/prometheus_etc /opt/prometheus_data
+	rm -rf /opt/homer1/data
 
 # ==============================================================================
 
@@ -81,7 +81,7 @@ telegraf-setup: ## telegraf-setup setup telegraf
 	docker-compose exec influxdb /bin/bash -c "influx auth list --hide-headers | grep 'root.*s Token' | awk '{print \$$4}'" >> /tmp/telegraf
 	cat /tmp/telegraf | tr -d '\r' > /etc/default/telegraf
 	echo >> /etc/default/telegraf
-	cat /root/conf/telegraf.conf > /etc/telegraf/telegraf.conf
+	cat /opt/homer1/conf/telegraf.conf > /etc/telegraf/telegraf.conf
 	rm -rf /tmp/telegraf
 	systemctl enable --now telegraf
 	systemctl restart telegraf
@@ -190,29 +190,29 @@ tools: ## tools install some debian apt goodies
 		docker-ce-cli \
 		containerd.io \
 		docker-compose
-	cp /root/undervoltage.sh /usr/bin/
+	cp /opt/homer1/undervoltage.sh /usr/bin/
 
 .PHONY: dirs
 dirs: ## dirs creare dirs required by docker-compose volumes
-	mkdir -p /opt/grafana_share/
-	mkdir -p /opt/grafana_lib/
-	mkdir -p /opt/grafana_etc/
-	mkdir -p /opt/influxdbv2_root/
-	mkdir -p /opt/influxdbv2_lib/
-	mkdir -p /opt/prometheus_etc/
-	mkdir -p /opt/prometheus_data/
-	mkdir -p /opt/influxdbv2_dashboards/
-	chmod -R 777 /opt/grafana_share/
-	chmod -R 777 /opt/grafana_lib/
-	chmod -R 777 /opt/grafana_etc/
-	chmod -R 777 /opt/influxdbv2_root/
-	chmod -R 777 /opt/influxdbv2_lib/
-	chmod -R 777 /opt/prometheus_etc/
-	chmod -R 777 /opt/prometheus_data/
-	chmod -R 777 /opt/influxdbv2_dashboards/
-	cp -n /root/conf/prometheus.yml /opt/prometheus_etc/
-	cp -n /root/conf/influxdb2_oss_metrics_dashboard.yaml /opt/influxdbv2_dashboards/
-	cp -n -r /root/conf/grafana/* /opt/grafana_etc/
+	mkdir -p /opt/homer1/data/grafana_share/
+	mkdir -p /opt/homer1/data/grafana_lib/
+	mkdir -p /opt/homer1/data/grafana_etc/
+	mkdir -p /opt/homer1/data/influxdbv2_root/
+	mkdir -p /opt/homer1/data/influxdbv2_lib/
+	mkdir -p /opt/homer1/data/prometheus_etc/
+	mkdir -p /opt/homer1/data/prometheus_data/
+	mkdir -p /opt/homer1/data/influxdbv2_dashboards/
+	chmod -R 777 /opt/homer1/data/grafana_share/
+	chmod -R 777 /opt/homer1/data/grafana_lib/
+	chmod -R 777 /opt/homer1/data/grafana_etc/
+	chmod -R 777 /opt/homer1/data/influxdbv2_root/
+	chmod -R 777 /opt/homer1/data/influxdbv2_lib/
+	chmod -R 777 /opt/homer1/data/prometheus_etc/
+	chmod -R 777 /opt/homer1/data/prometheus_data/
+	chmod -R 777 /opt/homer1/data/influxdbv2_dashboards/
+	cp -n /opt/homer1/conf/prometheus.yml /opt/homer1/data/prometheus_etc/
+	cp -n /opt/homer1/conf/influxdb2_oss_metrics_dashboard.yaml /opt/homer1/data/influxdbv2_dashboards/
+	cp -n -r /opt/homer1/conf/grafana/* /opt/homer1/data/grafana_etc/
 
 .PHONY: motd
 motd:

@@ -2,7 +2,7 @@
 Description=Homer1
 
 [Service]
-ExecStart=/usr/bin/docker-compose -f /root/docker-compose.yml up
+ExecStart=/usr/bin/docker-compose -f /opt/homer1/docker-compose.yml up
 
 [Install]
 WantedBy=multi-user.target
