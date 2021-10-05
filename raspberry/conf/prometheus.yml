@@ -1,5 +1,5 @@
 global:
-  scrape_interval: 2s 
+  scrape_interval: 15s 
   evaluation_interval: 15s 
   # scrape_timeout is set to the global default (10s).
 
@@ -30,6 +30,7 @@ scrape_configs:
       - targets: ["localhost:9100"]
 
   - job_name: "sensor0"
+    scrape_interval: 3s 
     static_configs:
       - targets: ["192.168.0.230:80"]
 

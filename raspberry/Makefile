@@ -214,6 +214,12 @@ dirs: ## dirs creare dirs required by docker-compose volumes
 	cp -n /opt/homer1/conf/influxdb2_oss_metrics_dashboard.yaml /opt/homer1/data/influxdbv2_dashboards/
 	cp -n -r /opt/homer1/conf/grafana/* /opt/homer1/data/grafana_etc/
 
+.PHONY: confs
+confs:
+	cp /opt/homer1/conf/prometheus.yml /opt/homer1/data/prometheus_etc/
+	cp /opt/homer1/conf/influxdb2_oss_metrics_dashboard.yaml /opt/homer1/data/influxdbv2_dashboards/
+	cp -r /opt/homer1/conf/grafana/* /opt/homer1/data/grafana_etc/
+
 .PHONY: motd
 motd:
 	echo > /etc/motd
