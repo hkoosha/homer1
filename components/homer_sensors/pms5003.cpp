@@ -19,7 +19,7 @@ namespace homer1 {
 namespace {
 
 const auto UART_READ_WAIT = 500;
-const auto UART_READ_WAIT_TICKS = UART_READ_WAIT / portTICK_RATE_MS;
+const auto UART_READ_WAIT_TICKS = UART_READ_WAIT / portTICK_PERIOD_MS;
 
 const auto MAX_RETRIES = 10;
 

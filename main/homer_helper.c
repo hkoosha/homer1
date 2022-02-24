@@ -10,7 +10,7 @@ extern "C" {
 // Clion goes crazy if I do it in cpp file.
 inline wifi_init_config_t my_get_wifi_cfg()
 {
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT()
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     return cfg;
 }
 

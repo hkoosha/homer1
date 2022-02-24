@@ -22,7 +22,7 @@ namespace Bmp180 {
 
 const char* const NAME = "BMP180";
 
-const TickType_t I2C_DELAY = 1000 / portTICK_RATE_MS;
+const TickType_t I2C_DELAY = 1000 / portTICK_PERIOD_MS;
 const uint32_t SEA_LEVEL_PRESSURE = 101325;
 const uint8_t I2C_ADDR = 0x77;
 const int32_t OVERSAMPLING_ULTRA_HIGH_RES = 3;

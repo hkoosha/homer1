@@ -27,7 +27,7 @@ const unsigned char ABC_REQ[] = {0xFE, 0x03, 0x00, 0x1F, 0x00, 0x01, 0xA1, 0XC3}
 const unsigned char CO2_REQ[] = {0xFE, 0x04, 0x00, 0x03, 0x00, 0x01, 0xD5, 0xC5};
 
 const auto UART_READ_WAIT = 500;
-const auto UART_READ_WAIT_TICKS = UART_READ_WAIT / portTICK_RATE_MS;
+const auto UART_READ_WAIT_TICKS = UART_READ_WAIT / portTICK_PERIOD_MS;
 
 // https://github.com/SFeli/ESP32_S8/blob/master/ESP32_S8_01.ino
 uint16_t modbus_crc(const uint8_t* buf,
