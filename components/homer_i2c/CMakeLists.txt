@@ -8,4 +8,5 @@ idf_component_register(
 
         REQUIRES
             homer_util
+            driver
 )
