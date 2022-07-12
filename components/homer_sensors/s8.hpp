@@ -17,8 +17,7 @@ using std::uint64_t;
 using std::endl;
 
 
-namespace homer1 {
-namespace S8 {
+namespace homer1::S8 {
 
 const char* const NAME = "S8";
 
@@ -72,7 +71,7 @@ protected:
 
     void do_dump(HomerSensorDump& map) const noexcept override;
 
-    const char* do_sensor_err_to_str(uint64_t err) const noexcept override;
+    [[nodiscard]] const char* do_sensor_err_to_str(uint64_t err) const noexcept override;
 
     void invalidate() noexcept override;
 };
@@ -128,5 +127,4 @@ private:
     SensorData data;
 };
 
-}
 }

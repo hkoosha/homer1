@@ -5,6 +5,8 @@ idf_component_register(
             "homer1.cpp"
             "homer1.hpp"
             "homer_helper.c"
+            "Adafruit_CCS811.cpp"
+            "Adafruit_CCS811.h"
 
         INCLUDE_DIRS
             "."

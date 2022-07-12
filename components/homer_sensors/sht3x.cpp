@@ -90,10 +90,13 @@ SensorData::SensorData(const SensorData& other) noexcept:
 }
 
 SensorData::SensorData(SensorData&& other) noexcept:
-        HomerSensorData(std::move(other))
+        HomerSensorData(std::move(other.error),
+                        other._time_to_read,
+                        other._read_start,
+                        other._name),
+        temperature{other.temperature},
+        humidity{other.humidity}
 {
-    this->temperature = other.temperature;
-    this->humidity = other.humidity;
 }
 
 SensorData::SensorData() noexcept:
@@ -160,7 +163,7 @@ Sensor& Sensor::operator=(Sensor&& other) noexcept
 
 void Sensor::refresh_data() noexcept
 {
-    auto err = this->i2c.write(0x24, 0x00);
+    auto err = this->i2c.write(I2C_ADDR, 0x24, 0x00);
     this->data._get_error().merge_from(err);
     if (err.has_error()) {
         ESP_LOGE(NAME, "i2c write failed");
@@ -170,7 +173,7 @@ void Sensor::refresh_data() noexcept
     my_sleep_millis(30);
 
     uint8_t read[6];
-    err = this->i2c.read_from_slave(read, 6);
+    err = this->i2c.read_from_slave(I2C_ADDR, read, 6);
     this->data._get_error().merge_from(err);
     if (err.has_error()) {
         ESP_LOGE(NAME, "i2c read from slave failed");

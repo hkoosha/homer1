@@ -14,8 +14,7 @@ using std::uint64_t;
 using std::endl;
 
 
-namespace homer1 {
-namespace Pms5003 {
+namespace homer1::Pms5003 {
 
 const char* const NAME = "PMS5003";
 
@@ -79,7 +78,7 @@ protected:
 
     void do_dump(HomerSensorDump& map) const noexcept override;
 
-    const char* do_sensor_err_to_str(uint64_t err) const noexcept override;
+    [[nodiscard]] const char* do_sensor_err_to_str(uint64_t err) const noexcept override;
 
     void invalidate() noexcept override;
 
@@ -114,12 +113,11 @@ private:
 
     void put_buffer_into_data() noexcept;
 
-    bool checksum_check() const noexcept;
+    [[nodiscard]] bool checksum_check() const noexcept;
 
     uart_port_t port;
     uint8_t* uart_buffer;
     SensorData data;
 };
 
-}
 }

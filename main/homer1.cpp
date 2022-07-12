@@ -303,7 +303,7 @@ public:
             ss << item << std::endl;
     }
 
-    std::stringstream dump_prometheus() const noexcept
+    [[nodiscard]] std::stringstream dump_prometheus() const noexcept
     {
         std::stringstream ss{};
 
@@ -350,7 +350,6 @@ Sensor* make_sensor()
                     {Bmp180::Sensor{
                             i2c::Device{
                                     BMP180_I2C_PORT,
-                                    Bmp180::I2C_ADDR,
                                     Bmp180::I2C_DELAY
                             },
                             Bmp180::SEA_LEVEL_PRESSURE,
@@ -359,7 +358,6 @@ Sensor* make_sensor()
                     {Sht3x::Sensor{
                             i2c::Device{
                                     SHT3X_I2C_PORT,
-                                    Sht3x::I2C_ADDR,
                                     Sht3x::I2C_DELAY
                             }
                     }}
@@ -379,8 +377,9 @@ void read_sensors(Sensor* sensor) noexcept
     xTaskCreate(
             [](void* arg) {
                 auto* sensor0 = static_cast<Sensor*>(arg);
-                while (my_is_s8_enabled() && sensor0->loop) {
-                    sensor0->update_s8();
+                while (sensor0->loop) {
+                    if(my_is_s8_enabled())
+                        sensor0->update_s8();
                     my_sleep_millis(MEASUREMENT_DELAY);
                 }
             },
@@ -393,8 +392,9 @@ void read_sensors(Sensor* sensor) noexcept
     xTaskCreate(
             [](void* arg) {
                 auto* sensor0 = static_cast<Sensor*>(arg);
-                while (my_is_bmp180_enabled() && sensor0->loop) {
-                    sensor0->update_bmp180();
+                while (sensor0->loop) {
+                    if (my_is_bmp180_enabled())
+                        sensor0->update_bmp180();
                     my_sleep_millis(MEASUREMENT_DELAY);
                 }
             },
@@ -407,8 +407,9 @@ void read_sensors(Sensor* sensor) noexcept
     xTaskCreate(
             [](void* arg) {
                 auto* sensor0 = static_cast<Sensor*>(arg);
-                while (my_is_pms5003_enabled() && sensor0->loop) {
-                    sensor0->update_pms5003();
+                while (sensor0->loop) {
+                    if(my_is_pms5003_enabled())
+                        sensor0->update_pms5003();
                     my_sleep_millis(MEASUREMENT_DELAY);
                 }
             },
@@ -421,8 +422,9 @@ void read_sensors(Sensor* sensor) noexcept
     xTaskCreate(
             [](void* arg) {
                 auto* sensor0 = static_cast<Sensor*>(arg);
-                while (my_is_sht3x_enabled() && sensor0->loop) {
-                    sensor0->update_sht3x();
+                while (sensor0->loop) {
+                    if(my_is_sht3x_enabled())
+                        sensor0->update_sht3x();
                     my_sleep_millis(MEASUREMENT_DELAY);
                 }
             },

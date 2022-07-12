@@ -18,7 +18,7 @@ void HomerSensorData::dump_header(std::stringstream& ss) const noexcept
        << " / "
        << uint64_to_bin(this->error.sensor_err())
        << std::endl;
-    ss << "TTR: " << this->time_to_read << std::endl;
+    ss << "TTR: " << this->_time_to_read << std::endl;
 }
 
 void HomerSensorData::dump(std::stringstream& ss) const noexcept
@@ -31,8 +31,8 @@ HomerSensorDump HomerSensorData::dump(const bool prefix_with_sensor_name) const 
 {
     auto map = HomerSensorDump{};
 
-    if (this->time_to_read != std::numeric_limits<uint64_t>::max())
-        insert(map, SENSOR_ATTR_TIME_TO_READ, this->time_to_read);
+    if (this->_time_to_read != std::numeric_limits<uint64_t>::max())
+        insert(map, SENSOR_ATTR_TIME_TO_READ, this->_time_to_read);
 
     insert(map, SENSOR_ATTR_HW_ERR, this->error.hardware_err());
     insert(map, SENSOR_ATTR_SENSOR_ERR, this->error.sensor_err());
@@ -85,7 +85,7 @@ void HomerSensorData::prometheus(std::stringstream& ss) const noexcept
           "time_to_read_seconds{sensor=\""
        << this->_name
        << "\"} "
-       << (static_cast<double>(this->time_to_read) / 1000)
+       << (static_cast<double>(this->_time_to_read) / 1000)
        << "\n";
 
     const auto dump = this->dump(false);
@@ -111,13 +111,13 @@ void HomerSensorData::prometheus(std::stringstream& ss) const noexcept
 
 void HomerSensorData::start_read() noexcept
 {
-    this->read_start = now_millis();
+    this->_read_start = now_millis();
 }
 
 void HomerSensorData::end_read() noexcept
 {
-    assert(this->read_start > 0);
-    this->time_to_read = now_millis() - this->read_start;
+    assert(this->_read_start > 0);
+    this->_time_to_read = now_millis() - this->_read_start;
 }
 
 
@@ -169,8 +169,8 @@ HomerSensorData& HomerSensorData::operator=(const HomerSensorData& other) noexce
         return *this;
 
     this->error = other.error;
-    this->time_to_read = other.time_to_read;
-    this->read_start = other.read_start;
+    this->_time_to_read = other._time_to_read;
+    this->_read_start = other._read_start;
     this->_name = other._name;
 
     return *this;
@@ -182,8 +182,8 @@ HomerSensorData& HomerSensorData::operator=(HomerSensorData&& other) noexcept
         return *this;
 
     this->error = std::move(other.error);
-    this->time_to_read = other.time_to_read;
-    this->read_start = other.read_start;
+    this->_time_to_read = other._time_to_read;
+    this->_read_start = other._read_start;
     this->_name = other._name;
 
     return *this;
@@ -191,17 +191,28 @@ HomerSensorData& HomerSensorData::operator=(HomerSensorData&& other) noexcept
 
 HomerSensorData::HomerSensorData(const char* _name) noexcept:
         error{HwErr::make_no_data()},
-        time_to_read{std::numeric_limits<uint64_t>::max()},
-        read_start{0},
+        _time_to_read{std::numeric_limits<uint64_t>::max()},
+        _read_start{0},
         _name{_name}
 {
 }
 
 HomerSensorData::HomerSensorData(HomerSensorData&& other) noexcept:
         error{std::move(other.error)},
-        time_to_read{other.time_to_read},
-        read_start{other.read_start},
+        _time_to_read{other._time_to_read},
+        _read_start{other._read_start},
         _name{other._name}
+{
+}
+
+HomerSensorData::HomerSensorData(HwErr&& error,
+                                 uint64_t time_to_read,
+                                 uint64_t read_start,
+                                 const char* name) noexcept:
+        error{std::move(error)},
+        _time_to_read{time_to_read},
+        _read_start{read_start},
+        _name{name}
 {
 }
 

@@ -221,7 +221,6 @@ Sensor::Sensor(Sensor&& other) noexcept:
         uart_buffer{other.uart_buffer},
         data{std::move(other.data)}
 {
-    other.uart_buffer = nullptr;
 }
 
 Sensor::Sensor(const uart_port_t port) :

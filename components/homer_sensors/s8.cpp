@@ -186,12 +186,15 @@ SensorData::SensorData(const SensorData& other) noexcept:
 }
 
 SensorData::SensorData(SensorData&& other) noexcept:
-        HomerSensorData(std::move(other))
+        HomerSensorData(std::move(other.error),
+                        other._time_to_read,
+                        other._read_start,
+                        other._name),
+        co2{other.co2},
+        abc_days{other.abc_days},
+        sensor_id{other.sensor_id},
+        sensor_fw{other.sensor_fw}
 {
-    this->co2 = other.co2;
-    this->abc_days = other.abc_days;
-    this->sensor_fw = other.sensor_fw;
-    this->sensor_id = other.sensor_id;
 }
 
 SensorData::SensorData() noexcept:
@@ -216,7 +219,6 @@ Sensor::Sensor(Sensor&& other) noexcept:
         sensor_fw{other.sensor_fw},
         data{std::move(other.data)}
 {
-    other.uart_buffer = nullptr;
 }
 
 Sensor::Sensor(const uart_port_t port) :

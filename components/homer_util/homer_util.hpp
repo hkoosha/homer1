@@ -86,23 +86,23 @@ public:
                       esp_err_t hardware_err) noexcept;
 
 
-    uint64_t sensor_err() const noexcept;
+    [[nodiscard]] uint64_t sensor_err() const noexcept;
 
-    esp_err_t hardware_err() const noexcept;
+    [[nodiscard]] esp_err_t hardware_err() const noexcept;
 
-    bool is_ok() const noexcept;
+    [[nodiscard]] bool is_ok() const noexcept;
 
-    bool has_error() const noexcept;
+    [[nodiscard]] bool has_error() const noexcept;
 
-    bool is_ok_or_no_data() const noexcept;
+    [[nodiscard]] bool is_ok_or_no_data() const noexcept;
 
-    bool has_sensor_err() const noexcept;
+    [[nodiscard]] bool has_sensor_err() const noexcept;
 
-    bool has_hardware_err() const noexcept;
+    [[nodiscard]] bool has_hardware_err() const noexcept;
 
-    bool has_sensor_err(uint64_t err) const noexcept;
+    [[nodiscard]] bool has_sensor_err(uint64_t err) const noexcept;
 
-    bool has_hardware_err(esp_err_t err) const noexcept;
+    [[nodiscard]] bool has_hardware_err(esp_err_t err) const noexcept;
 
 
     void add_sensor_err(uint64_t err) noexcept;

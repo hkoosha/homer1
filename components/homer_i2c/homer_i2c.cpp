@@ -1,6 +1,3 @@
-#include <cstdint>
-#include <cstddef>
-
 #include "esp_log.h"
 
 #include "homer_util.hpp"
@@ -69,17 +66,14 @@ const char* err_to_string(const uint64_t err) noexcept
 namespace i2c {
 
 Device::Device(const i2c_port_t i2c_num,
-               const uint8_t addr,
                const TickType_t delay) noexcept:
         i2c_num{i2c_num},
-        addr{addr},
         delay{delay}
 {
 }
 
 Device::Device(Device&& other) noexcept:
         i2c_num{other.i2c_num},
-        addr{other.addr},
         delay{other.delay}
 {
 }
@@ -90,7 +84,6 @@ Device& Device::operator=(Device&& other) noexcept
         return *this;
 
     this->i2c_num = other.i2c_num;
-    this->addr = other.addr;
     this->delay = other.delay;
 
     return *this;
@@ -100,7 +93,8 @@ Device& Device::operator=(Device&& other) noexcept
 
 namespace i2c {
 
-HwErr Device::write_to_slave(const uint8_t* data,
+HwErr Device::write_to_slave(uint8_t addr,
+                             const uint8_t* data,
                              size_t size) const noexcept
 {
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
@@ -114,7 +108,7 @@ HwErr Device::write_to_slave(const uint8_t* data,
         return {ERROR_I2C_MASTER_START | ERROR_MASTER_WRITE_SLAVE, err};
     }
 
-    err = i2c_master_write_byte(cmd, (this->addr << 1) | I2C_MASTER_WRITE, true);
+    err = i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "error i2c_master_write_byte: %d", err);
         i2c_cmd_link_delete(cmd);
@@ -146,7 +140,8 @@ HwErr Device::write_to_slave(const uint8_t* data,
     return HwErr::make_ok();
 }
 
-HwErr Device::read_from_slave(uint8_t* data,
+HwErr Device::read_from_slave(uint8_t addr,
+                              uint8_t* data,
                               size_t size) const noexcept
 {
     if (size == 0)
@@ -163,7 +158,7 @@ HwErr Device::read_from_slave(uint8_t* data,
         return {ERROR_I2C_MASTER_START | ERROR_MASTER_READ_SLAVE, err};
     }
 
-    err = i2c_master_write_byte(cmd, (this->addr << 1) | I2C_MASTER_READ, true);
+    err = i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "error i2c_master_write_byte: %d", err);
         i2c_cmd_link_delete(cmd);
@@ -205,14 +200,15 @@ HwErr Device::read_from_slave(uint8_t* data,
 }
 
 
-HwErr Device::read_int16(const uint8_t reg,
+HwErr Device::read_int16(uint8_t addr,
+                         const uint8_t reg,
                          int16_t& value) const noexcept
 {
-    auto err = this->write_to_slave(&reg, 1);
+    auto err = this->write_to_slave(addr, &reg, 1);
 
     if (err.is_ok()) {
         uint8_t data[2] = {0};
-        err = this->read_from_slave(data, 2);
+        err = this->read_from_slave(addr, data, 2);
 
         if (err.is_ok()) {
             value = static_cast<int16_t>((data[0] << 8) | data[1]);
@@ -224,14 +220,15 @@ HwErr Device::read_int16(const uint8_t reg,
     return err;
 }
 
-HwErr Device::read_uint16(const uint8_t reg,
+HwErr Device::read_uint16(uint8_t addr,
+                          const uint8_t reg,
                           uint16_t& value) const noexcept
 {
-    auto err = this->write_to_slave(&reg, 1);
+    auto err = this->write_to_slave(addr, &reg, 1);
 
     if (err.is_ok()) {
         uint8_t data[2] = {0};
-        err = this->read_from_slave(data, 2);
+        err = this->read_from_slave(addr, data, 2);
 
         if (err.is_ok()) {
             value = static_cast<uint16_t>((data[0] << 8) | data[1]);
@@ -243,14 +240,15 @@ HwErr Device::read_uint16(const uint8_t reg,
     return err;
 }
 
-HwErr Device::read_uint32(const uint8_t reg,
+HwErr Device::read_uint32(uint8_t addr,
+                          const uint8_t reg,
                           uint32_t& value) const noexcept
 {
-    auto err = this->write_to_slave(&reg, 1);
+    auto err = this->write_to_slave(addr, &reg, 1);
 
     if (err.is_ok()) {
         uint8_t data[3] = {0};
-        err = this->read_from_slave(data, 3);
+        err = this->read_from_slave(addr, data, 3);
 
         if (err.is_ok()) {
             value = static_cast<uint32_t>((data[0] << 16) | (data[1] << 8) | data[2]);
@@ -262,11 +260,12 @@ HwErr Device::read_uint32(const uint8_t reg,
     return err;
 }
 
-HwErr Device::write(const uint8_t a,
+HwErr Device::write(uint8_t addr,
+                    const uint8_t a,
                     const uint8_t b) const noexcept
 {
     const uint8_t data[] = {a, b};
-    const auto err = this->write_to_slave(data, 2);
+    const auto err = this->write_to_slave(addr, data, 2);
 
     if (err.is_ok())
         return err;

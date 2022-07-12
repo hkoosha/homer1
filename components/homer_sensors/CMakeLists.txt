@@ -8,6 +8,8 @@ idf_component_register(
            "s8.hpp"
            "sht3x.cpp"
            "sht3x.hpp"
+            "ccs811.cpp"
+            "ccs811.hpp"
 
         INCLUDE_DIRS
             "."

@@ -73,5 +73,11 @@ menu "Homer1 Configuration"
         help
             Whether if PMS5003 sensor is enabled or not.
 
+    config MY_SENSOR_ENABLED_CCS811
+        bool "CCS811 enabled"
+        default y
+        help
+            Whether if CCS811 sensor is enabled or not.
+
 endmenu
 

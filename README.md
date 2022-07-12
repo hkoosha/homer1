@@ -8,12 +8,11 @@ A project to read out sensors connected to ESP32 and write to InfluxDB. ESP-IDF 
 - SHT3X
 - S8 (SenseAir)
 - PMS5003
+- CSS811
 
 ## Warning!
 
 - Not necessarily power consumption friendly.
-- Not necessarily memory / stack friendly.
-- The programming model here is not embedded friendly.
 - SHT3X takes no calibration.
 - Sensor modes are not configurable, everything about sensor configuration is hard-coded.
 - If the Prometheus people find out the way I have written exporters, they'll cry.

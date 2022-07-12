@@ -82,14 +82,14 @@ public:
 
     void dump(std::stringstream& ss) const noexcept;
 
-    HomerSensorDump dump(bool prefix_with_sensor_name = true) const noexcept;
+    [[nodiscard]] HomerSensorDump dump(bool prefix_with_sensor_name = true) const noexcept;
 
     void influxdb(std::vector<std::string>& measurements) const noexcept;
 
     void prometheus(std::stringstream& ss) const noexcept;
 
 
-    const HwErr& get_error() const noexcept;
+    [[nodiscard]] const HwErr& get_error() const noexcept;
 
     HwErr& _get_error() noexcept;
 
@@ -98,24 +98,33 @@ public:
 
     const char* sensor_err_to_str(const HwErr* err = nullptr) const noexcept;
 
-    const char* name() const noexcept;
+    [[nodiscard]] const char* name() const noexcept;
 
 protected:
     explicit HomerSensorData(const char* name) noexcept;
+
+    HomerSensorData(HwErr&& error,
+                    uint64_t time_to_read,
+                    uint64_t read_start,
+                    const char* name) noexcept;
 
 
     virtual void do_dump(HomerSensorDump& map) const noexcept = 0;
 
     virtual void do_dump(std::stringstream& ss) const noexcept = 0;
 
-    virtual const char* do_hw_err_to_str(esp_err_t err) const noexcept;
+    [[nodiscard]] virtual const char* do_hw_err_to_str(esp_err_t err) const noexcept;
 
-    virtual const char* do_sensor_err_to_str(uint64_t err) const noexcept = 0;
+    [[nodiscard]] virtual const char* do_sensor_err_to_str(uint64_t err) const noexcept = 0;
 
 
     virtual void invalidate() noexcept = 0;
 
     HwErr error;
+
+    uint64_t _time_to_read;
+    uint64_t _read_start;
+    const char* _name;
 
     template<typename DATA>
     friend
@@ -127,10 +136,6 @@ private:
     void start_read() noexcept;
 
     void end_read() noexcept;
-
-    uint64_t time_to_read;
-    uint64_t read_start;
-    const char* _name;
 };
 
 template<typename DATA>

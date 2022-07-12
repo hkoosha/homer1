@@ -17,8 +17,7 @@ using std::uint32_t;
 using std::uint64_t;
 
 
-namespace homer1 {
-namespace Bmp180 {
+namespace homer1::Bmp180 {
 
 const char* const NAME = "BMP180";
 
@@ -39,6 +38,7 @@ const uint64_t ERROR_READ_PRESSURE = ERROR_CALCULATE_B5 << 1;
 
 const char* const SENSOR_ATTR_PRESSURE = "pressure";
 const char* const SENSOR_ATTR_TEMPERATURE = "temperature";
+
 
 const char* err_to_string(uint64_t err) noexcept;
 
@@ -67,7 +67,7 @@ protected:
 
     void do_dump(HomerSensorDump& map) const noexcept override;
 
-    const char* do_sensor_err_to_str(uint64_t err) const noexcept override;
+    [[nodiscard]] const char* do_sensor_err_to_str(uint64_t err) const noexcept override;
 
     void invalidate() noexcept override;
 
@@ -95,7 +95,7 @@ public:
 
     HwErr init() noexcept;
 
-    bool is_initialized() const noexcept;
+    [[nodiscard]] bool is_initialized() const noexcept;
 
 
 protected:
@@ -135,5 +135,4 @@ private:
     int16_t md{};
 };
 
-}
 }

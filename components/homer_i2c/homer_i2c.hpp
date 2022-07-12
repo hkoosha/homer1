@@ -14,8 +14,7 @@ using std::uint32_t;
 using std::uint64_t;
 
 
-namespace homer1 {
-namespace i2c {
+namespace homer1::i2c {
 
 const uint64_t ERROR_I2C_MASTER_START = ERROR_NO_DATA_AVAILABLE << 1;
 const uint64_t ERROR_I2C_MASTER_WRITE_BYTE = ERROR_I2C_MASTER_START << 1;
@@ -50,35 +49,38 @@ public:
     Device(Device&& other) noexcept;;
 
     Device(i2c_port_t i2c_num,
-           uint8_t addr,
            TickType_t delay) noexcept;
 
     ~Device() noexcept = default;
 
 
-    HwErr write_to_slave(const uint8_t* data,
+    HwErr write_to_slave(uint8_t addr,
+                         const uint8_t* data,
                          size_t size) const noexcept;
 
-    HwErr read_from_slave(uint8_t* data,
+    HwErr read_from_slave(uint8_t addr,
+                          uint8_t* data,
                           size_t size) const noexcept;
 
-    HwErr write(uint8_t,
-                uint8_t) const noexcept;
+    [[nodiscard]] HwErr write(uint8_t addr,
+                              uint8_t,
+                              uint8_t) const noexcept;
 
-    HwErr read_int16(uint8_t reg,
+    HwErr read_int16(uint8_t addr,
+                     uint8_t reg,
                      int16_t& value) const noexcept;
 
-    HwErr read_uint16(uint8_t reg,
+    HwErr read_uint16(uint8_t addr,
+                      uint8_t reg,
                       uint16_t& value) const noexcept;
 
-    HwErr read_uint32(uint8_t reg,
+    HwErr read_uint32(uint8_t addr,
+                      uint8_t reg,
                       uint32_t& value) const noexcept;
 
 private:
     i2c_port_t i2c_num;
-    uint8_t addr;
     TickType_t delay;
 };
 
-}
 }

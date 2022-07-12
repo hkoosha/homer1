@@ -14,8 +14,7 @@ using std::uint64_t;
 using std::endl;
 
 
-namespace homer1 {
-namespace Sht3x {
+namespace homer1::Sht3x {
 
 const char* const NAME = "SHT3X";
 
@@ -58,7 +57,7 @@ protected:
 
     void do_dump(HomerSensorDump& map) const noexcept override;
 
-    const char* do_sensor_err_to_str(uint64_t err) const noexcept override;
+    [[nodiscard]] const char* do_sensor_err_to_str(uint64_t err) const noexcept override;
 };
 
 class Sensor final : public HomerSensor<SensorData>
@@ -88,5 +87,4 @@ private:
     SensorData data;
 };
 
-}
 }
