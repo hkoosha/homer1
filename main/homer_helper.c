@@ -61,6 +61,9 @@ inline bool my_is_bmp180_enabled() {
 #endif
 }
 
+inline bool my_is_influxdb_enabled() {
+    return strlen(CONFIG_MY_INFLUXDB_URL) >= 1;
+}
 
 #ifdef __cplusplus
 }

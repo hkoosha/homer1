@@ -20,14 +20,14 @@ A project to read out sensors connected to ESP32 and write to InfluxDB. ESP-IDF 
 
 #### References
 
-Some BMP180 code stolen from:<br>
-https://github.com/krzychb/bmp180-tests [APACHE-2.0]
+Some BMP180 code stolen from:
+[krzychb/bmp180-tests](https://github.com/krzychb/bmp180-tests) [APACHE-2.0]
 
-Some S8 code stolen from:<br>
-https://github.com/SFeli/ESP32_S8/blob/master/ESP32_S8_01.ino
+Some S8 code stolen from:
+[SFeli/ESP32_S8](https://github.com/SFeli/ESP32_S8/blob/master/ESP32_S8_01.ino)
 
-Some Prometheus ideas got from:<br>
-https://github.com/polyfloyd/esp32-sensornode
+Some Prometheus ideas got from:
+[polyfloyd/esp32-sensornode](https://github.com/polyfloyd/esp32-sensornode)
 
 ## Screenshots
 

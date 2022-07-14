@@ -142,7 +142,7 @@ Sensor::Sensor(i2c::Device i2c) noexcept:
 }
 
 Sensor::Sensor(Sensor&& other) noexcept:
-        HomerSensor<SensorData>(std::move(other)),
+        HomerSensor<SensorData>(other._refresh_every, other._last_update),
         i2c{std::move(other.i2c)},
         data{std::move(other.data)}
 {
@@ -166,7 +166,7 @@ void Sensor::refresh_data() noexcept
     auto err = this->i2c.write(I2C_ADDR, 0x24, 0x00);
     this->data._get_error().merge_from(err);
     if (err.has_error()) {
-        ESP_LOGE(NAME, "i2c write failed");
+        ESP_LOGE(NAME, "i2c failed");
         return;
     }
 

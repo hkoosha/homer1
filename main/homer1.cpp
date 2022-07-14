@@ -45,10 +45,10 @@ httpd_handle_t prometheus_http_server(Sensor* sensor);
 class SensorData final
 {
 public:
-    Pms5003::SensorData pms5003;
-    Bmp180::SensorData bmp180;
-    S8::SensorData s8;
-    Sht3x::SensorData sht3x;
+    Pms5003::SensorData pms5003{};
+    Bmp180::SensorData bmp180{};
+    S8::SensorData s8{};
+    Sht3x::SensorData sht3x{};
 
 
     SensorData& operator=(const SensorData& other) = delete;
@@ -66,22 +66,17 @@ public:
     {
     }
 
-    SensorData() noexcept:
-            pms5003{},
-            bmp180{},
-            s8{},
-            sht3x{}
-    {
-    }
+    SensorData() noexcept = default;
+
 };
 
 class SensorPeripheral final
 {
 public:
-    S8::Sensor s8;
-    Pms5003::Sensor pms5003;
-    Bmp180::Sensor bmp180;
-    Sht3x::Sensor sht3x;
+    S8::Sensor* s8;
+    Pms5003::Sensor* pms5003;
+    Bmp180::Sensor* bmp180;
+    Sht3x::Sensor* sht3x;
 
 
     SensorPeripheral& operator=(const SensorPeripheral& other) = delete;
@@ -91,23 +86,39 @@ public:
     SensorPeripheral(const SensorPeripheral& other) = delete;
 
 
-    SensorPeripheral(SensorPeripheral&& other) noexcept:
-            s8{std::move(other.s8)},
-            pms5003{std::move(other.pms5003)},
-            bmp180{std::move(other.bmp180)},
-            sht3x{std::move(other.sht3x)}
+    SensorPeripheral(SensorPeripheral&& other) noexcept
+    {
+        this->s8 = other.s8;
+        this->pms5003 = other.pms5003;
+        this->bmp180 = other.bmp180;
+        this->sht3x = other.sht3x;
+        other.s8 = nullptr;
+        other.pms5003 = nullptr;
+        other.bmp180 = nullptr;
+        other.sht3x = nullptr;
+    }
+
+    SensorPeripheral(S8::Sensor* s8,
+                     Pms5003::Sensor* pms5003,
+                     Bmp180::Sensor* bmp180,
+                     Sht3x::Sensor* sht3x) noexcept:
+            s8{s8},
+            pms5003{pms5003},
+            bmp180{bmp180},
+            sht3x{sht3x}
     {
     }
 
-    SensorPeripheral(S8::Sensor&& s8,
-                     Pms5003::Sensor&& pms5003,
-                     Bmp180::Sensor&& bmp180,
-                     Sht3x::Sensor&& sht3x) noexcept:
-            s8{std::move(s8)},
-            pms5003{std::move(pms5003)},
-            bmp180{std::move(bmp180)},
-            sht3x{std::move(sht3x)}
+    ~SensorPeripheral()
     {
+        delete this->s8;
+        delete this->pms5003;
+        delete this->bmp180;
+        delete this->sht3x;
+        this->s8 = nullptr;
+        this->pms5003 = nullptr;
+        this->bmp180 = nullptr;
+        this->sht3x = nullptr;
     }
 };
 
@@ -158,7 +169,7 @@ public:
     {
         assert(my_is_s8_enabled());
 
-        const auto& new_data = this->peripheral.s8.read_data();
+        const auto& new_data = this->peripheral.s8->read_data();
 
         this->lock();
         this->data.s8 = new_data;
@@ -169,7 +180,7 @@ public:
     {
         assert(my_is_sht3x_enabled());
 
-        const auto new_data = this->peripheral.sht3x.read_data();
+        const auto new_data = this->peripheral.sht3x->read_data();
 
         this->lock();
         this->data.sht3x = new_data;
@@ -180,7 +191,7 @@ public:
     {
         assert(my_is_pms5003_enabled());
 
-        const auto new_data = this->peripheral.pms5003.read_data();
+        const auto new_data = this->peripheral.pms5003->read_data();
 
         this->lock();
         this->data.pms5003 = new_data;
@@ -192,8 +203,8 @@ public:
         assert(my_is_bmp180_enabled());
 
         Bmp180::SensorData new_data{};
-        if (this->peripheral.bmp180.is_initialized() || this->peripheral.bmp180.init().is_ok())
-            new_data = this->peripheral.bmp180.read_data();
+        if (this->peripheral.bmp180->is_initialized() || this->peripheral.bmp180->init().is_ok())
+            new_data = this->peripheral.bmp180->read_data();
 
         this->lock();
         this->data.bmp180 = new_data;
@@ -345,22 +356,30 @@ Sensor* make_sensor()
     auto sensor = new Sensor{
             {},
             SensorPeripheral{
-                    {S8::Sensor{S8_UART_PORT}},
-                    {Pms5003::Sensor{PMS5003_UART_PORT}},
-                    {Bmp180::Sensor{
-                            i2c::Device{
-                                    BMP180_I2C_PORT,
-                                    Bmp180::I2C_DELAY
-                            },
-                            Bmp180::SEA_LEVEL_PRESSURE,
-                            Bmp180::OVERSAMPLING_ULTRA_HIGH_RES
-                    }},
-                    {Sht3x::Sensor{
-                            i2c::Device{
-                                    SHT3X_I2C_PORT,
-                                    Sht3x::I2C_DELAY
+                    {
+                            new S8::Sensor{S8_UART_PORT}
+                    },
+                    {
+                            new Pms5003::Sensor{PMS5003_UART_PORT}
+                    },
+                    {
+                            new Bmp180::Sensor{
+                                    i2c::Device{
+                                            BMP180_I2C_PORT,
+                                            Bmp180::I2C_DELAY
+                                    },
+                                    Bmp180::SEA_LEVEL_PRESSURE,
+                                    Bmp180::OVERSAMPLING_ULTRA_HIGH_RES
                             }
-                    }}
+                    },
+                    {
+                            new Sht3x::Sensor{
+                                    i2c::Device{
+                                            SHT3X_I2C_PORT,
+                                            Sht3x::I2C_DELAY
+                                    }
+                            }
+                    }
             }
     };
 
@@ -378,7 +397,7 @@ void read_sensors(Sensor* sensor) noexcept
             [](void* arg) {
                 auto* sensor0 = static_cast<Sensor*>(arg);
                 while (sensor0->loop) {
-                    if(my_is_s8_enabled())
+                    if (my_is_s8_enabled())
                         sensor0->update_s8();
                     my_sleep_millis(MEASUREMENT_DELAY);
                 }
@@ -408,7 +427,7 @@ void read_sensors(Sensor* sensor) noexcept
             [](void* arg) {
                 auto* sensor0 = static_cast<Sensor*>(arg);
                 while (sensor0->loop) {
-                    if(my_is_pms5003_enabled())
+                    if (my_is_pms5003_enabled())
                         sensor0->update_pms5003();
                     my_sleep_millis(MEASUREMENT_DELAY);
                 }
@@ -423,7 +442,7 @@ void read_sensors(Sensor* sensor) noexcept
             [](void* arg) {
                 auto* sensor0 = static_cast<Sensor*>(arg);
                 while (sensor0->loop) {
-                    if(my_is_sht3x_enabled())
+                    if (my_is_sht3x_enabled())
                         sensor0->update_sht3x();
                     my_sleep_millis(MEASUREMENT_DELAY);
                 }
@@ -525,7 +544,7 @@ void push_influxdb(Sensor* sensor) noexcept
         ESP_LOGW(PUSHER_TAG, "Wifi not enabled, disabled pushing metrics.");
         return;
     }
-    if (strlen(CONFIG_MY_INFLUXDB_URL) < 1) {
+    if (!my_is_influxdb_enabled()) {
         ESP_LOGW(PUSHER_TAG, "InfluxDB URL not set, disabled pushing metrics.");
         return;
     }
@@ -536,7 +555,8 @@ void push_influxdb(Sensor* sensor) noexcept
 
                 auto* sensor0 = static_cast<Sensor*>(arg);
 
-                std::string url{CONFIG_MY_INFLUXDB_URL};
+                std::string url;
+                url += CONFIG_MY_INFLUXDB_URL;
                 url += "/api/v2/write?org=";
                 url += CONFIG_MY_INFLUXDB_ORG;
                 url += "&bucket=";

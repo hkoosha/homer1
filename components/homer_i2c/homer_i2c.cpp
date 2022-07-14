@@ -103,35 +103,35 @@ HwErr Device::write_to_slave(uint8_t addr,
 
     err = i2c_master_start(cmd);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "error i2c_master_start_error: %d", err);
+        ESP_LOGE("homer_i2c::write_to_slave", "error i2c_master_start_error: %d", err);
         i2c_cmd_link_delete(cmd);
         return {ERROR_I2C_MASTER_START | ERROR_MASTER_WRITE_SLAVE, err};
     }
 
     err = i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "error i2c_master_write_byte: %d", err);
+        ESP_LOGE("homer_i2c::write_to_slave", "error i2c_master_write_byte: %d", err);
         i2c_cmd_link_delete(cmd);
         return {ERROR_I2C_MASTER_WRITE_BYTE | ERROR_MASTER_WRITE_SLAVE, err};
     }
 
     err = i2c_master_write(cmd, data, size, true);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "error i2c_master_write: %d", err);
+        ESP_LOGE("homer_i2c::write_to_slave", "error i2c_master_write: %d", err);
         i2c_cmd_link_delete(cmd);
         return {ERROR_I2C_MASTER_WRITE | ERROR_MASTER_WRITE_SLAVE, err};
     }
 
     err = i2c_master_stop(cmd);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "error i2c_master_stop: %d", err);
+        ESP_LOGE("homer_i2c::write_to_slave", "error i2c_master_stop: %d", err);
         i2c_cmd_link_delete(cmd);
         return {ERROR_I2C_MASTER_STOP | ERROR_MASTER_WRITE_SLAVE, err};
     }
 
     err = i2c_master_cmd_begin(this->i2c_num, cmd, this->delay);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "error i2c_master_cmd_begin: %d", err);
+        ESP_LOGE("homer_i2c::write_to_slave", "error i2c_master_cmd_begin: %d", err);
         i2c_cmd_link_delete(cmd);
         return {ERROR_I2C_MASTER_CMD_BEGIN | ERROR_MASTER_WRITE_SLAVE, err};
     }
@@ -153,14 +153,14 @@ HwErr Device::read_from_slave(uint8_t addr,
 
     err = i2c_master_start(cmd);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "error i2c_master_start_error: %d", err);
+        ESP_LOGE("homer_i2c::read_from_slave", "error i2c_master_start_error: %d", err);
         i2c_cmd_link_delete(cmd);
         return {ERROR_I2C_MASTER_START | ERROR_MASTER_READ_SLAVE, err};
     }
 
     err = i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "error i2c_master_write_byte: %d", err);
+        ESP_LOGE("homer_i2c::read_from_slave", "error i2c_master_write_byte: %d", err);
         i2c_cmd_link_delete(cmd);
         return {ERROR_I2C_MASTER_WRITE_BYTE | ERROR_MASTER_READ_SLAVE, err};
     }
@@ -168,7 +168,7 @@ HwErr Device::read_from_slave(uint8_t addr,
     if (size > 1) {
         err = i2c_master_read(cmd, data, size - 1, i2c_ack_type_t::I2C_MASTER_ACK);
         if (err != ESP_OK) {
-            ESP_LOGE(TAG, "error i2c_master_read: %d", err);
+            ESP_LOGE("homer_i2c::read_from_slave", "error i2c_master_read: %d", err);
             i2c_cmd_link_delete(cmd);
             return {ERROR_I2C_MASTER_READ | ERROR_MASTER_READ_SLAVE, err};
         }
@@ -176,21 +176,103 @@ HwErr Device::read_from_slave(uint8_t addr,
 
     err = i2c_master_read_byte(cmd, data + size - 1, i2c_ack_type_t::I2C_MASTER_NACK);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "error i2c_master_read_byte: %d", err);
+        ESP_LOGE("homer_i2c::read_from_slave", "error i2c_master_read_byte: %d", err);
         i2c_cmd_link_delete(cmd);
         return {ERROR_I2C_MASTER_READ_BYTE | ERROR_MASTER_READ_SLAVE, err};
     }
 
     err = i2c_master_stop(cmd);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "error i2c_master_stop: %d", err);
+        ESP_LOGE("homer_i2c::read_from_slave", "error i2c_master_stop: %d", err);
         i2c_cmd_link_delete(cmd);
         return {ERROR_I2C_MASTER_STOP | ERROR_MASTER_READ_SLAVE, err};
     }
 
     err = i2c_master_cmd_begin(this->i2c_num, cmd, this->delay);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "error i2c_master_cmd_begin: %d", err);
+        ESP_LOGE("homer_i2c::read_from_slave", "error i2c_master_cmd_begin: %d", err);
+        i2c_cmd_link_delete(cmd);
+        return {ERROR_I2C_MASTER_CMD_BEGIN | ERROR_MASTER_READ_SLAVE, err};
+    }
+
+    i2c_cmd_link_delete(cmd);
+    return HwErr::make_ok();
+}
+
+HwErr Device::read_from_slave(uint8_t addr,
+                              uint8_t reg,
+                              uint8_t* data,
+                              size_t size) const noexcept
+{
+    if (size == 0)
+        return HwErr::make_ok();
+
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+
+    esp_err_t err;
+
+    err = i2c_master_start(cmd);
+    if (err != ESP_OK) {
+        ESP_LOGE("homer_i2c::read_from_slave(reg)", "error i2c_master_start_error: %d", err);
+        i2c_cmd_link_delete(cmd);
+        return {ERROR_I2C_MASTER_START | ERROR_MASTER_READ_SLAVE, err};
+    }
+
+    err = i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
+    if (err != ESP_OK) {
+        ESP_LOGE("homer_i2c::read_from_slave(reg)", "error i2c_master_write_byte: %d", err);
+        i2c_cmd_link_delete(cmd);
+        return {ERROR_I2C_MASTER_WRITE_BYTE | ERROR_MASTER_READ_SLAVE, err};
+    }
+
+    err = i2c_master_write_byte(cmd, reg, true);
+    if (err != ESP_OK) {
+        ESP_LOGE("homer_i2c::read_from_slave(reg)", "error i2c_master_write_byte: %d", err);
+        i2c_cmd_link_delete(cmd);
+        return {ERROR_I2C_MASTER_WRITE_BYTE | ERROR_MASTER_READ_SLAVE, err};
+    }
+
+    err = i2c_master_start(cmd);
+    if (err != ESP_OK) {
+        ESP_LOGE("homer_i2c::read_from_slave(reg)", "error i2c_master_start_error: %d", err);
+        i2c_cmd_link_delete(cmd);
+        return {ERROR_I2C_MASTER_START | ERROR_MASTER_READ_SLAVE, err};
+    }
+
+    err = i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
+    if (err != ESP_OK) {
+        ESP_LOGE("homer_i2c::read_from_slave(reg)", "error i2c_master_write_byte: %d", err);
+        i2c_cmd_link_delete(cmd);
+        return {ERROR_I2C_MASTER_WRITE_BYTE | ERROR_MASTER_READ_SLAVE, err};
+    }
+
+    if (size > 1) {
+        err = i2c_master_read(cmd, data, size - 1, i2c_ack_type_t::I2C_MASTER_ACK);
+        if (err != ESP_OK) {
+            ESP_LOGE("homer_i2c::read_from_slave(reg)", "error i2c_master_read: %d", err);
+            i2c_cmd_link_delete(cmd);
+            return {ERROR_I2C_MASTER_READ | ERROR_MASTER_READ_SLAVE, err};
+        }
+    }
+
+    err = i2c_master_read_byte(cmd, data + size - 1, i2c_ack_type_t::I2C_MASTER_NACK);
+    if (err != ESP_OK) {
+        ESP_LOGE("homer_i2c::read_from_slave(reg)", "error i2c_master_read_byte: %d", err);
+        i2c_cmd_link_delete(cmd);
+        return {ERROR_I2C_MASTER_READ_BYTE | ERROR_MASTER_READ_SLAVE, err};
+    }
+
+    err = i2c_master_stop(cmd);
+    if (err != ESP_OK) {
+        ESP_LOGE("homer_i2c::read_from_slave(reg)", "error i2c_master_stop: %d", err);
+        i2c_cmd_link_delete(cmd);
+        return {ERROR_I2C_MASTER_STOP | ERROR_MASTER_READ_SLAVE, err};
+    }
+
+    ESP_LOGI("DELAY", "DEL: %d", this->delay);
+    err = i2c_master_cmd_begin(this->i2c_num, cmd, this->delay);
+    if (err != ESP_OK) {
+        ESP_LOGE("homer_i2c::read_from_slave(reg)", "error i2c_master_cmd_begin: %d", err);
         i2c_cmd_link_delete(cmd);
         return {ERROR_I2C_MASTER_CMD_BEGIN | ERROR_MASTER_READ_SLAVE, err};
     }
@@ -216,7 +298,7 @@ HwErr Device::read_int16(uint8_t addr,
         }
     }
 
-    ESP_LOGE(TAG, "read [0x%02x]::int16 failed", reg);
+    ESP_LOGE("homer_i2c::read_int16", "read [0x%02x]::int16 failed", reg);
     return err;
 }
 
@@ -236,7 +318,7 @@ HwErr Device::read_uint16(uint8_t addr,
         }
     }
 
-    ESP_LOGE(TAG, "read [0x%02x]::uint16 failed", reg);
+    ESP_LOGE("homer_i2c::read_int16", "read [0x%02x]::uint16 failed", reg);
     return err;
 }
 
@@ -256,7 +338,7 @@ HwErr Device::read_uint32(uint8_t addr,
         }
     }
 
-    ESP_LOGE(TAG, "read [0x%02x]::uint16 failed", reg);
+    ESP_LOGE("homer_i2c::read_int16", "read [0x%02x]::uint16 failed", reg);
     return err;
 }
 
@@ -270,7 +352,7 @@ HwErr Device::write(uint8_t addr,
     if (err.is_ok())
         return err;
 
-    ESP_LOGE(TAG, "write 0x%02x-0x%02x failed", a, b);
+    ESP_LOGE("homer_i2c::write", "write 0x%02x-0x%02x failed", a, b);
     return err;
 }
 

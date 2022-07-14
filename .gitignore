@@ -10,5 +10,7 @@ main/cmake-build-debug/
 sdkconfig.old
 sdkconfig
 
+/cmake-build-default/
+
 *fuck*
 *shit*

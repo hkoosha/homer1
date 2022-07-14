@@ -189,7 +189,7 @@ Sensor& Sensor::operator=(Sensor&& other) noexcept
 }
 
 Sensor::Sensor(Sensor&& other) noexcept:
-        HomerSensor(std::move(other)),
+        HomerSensor(other._refresh_every, other._last_update),
         reference_pressure{other.reference_pressure},
         oversampling{other.oversampling},
         i2c{std::move(other.i2c)},

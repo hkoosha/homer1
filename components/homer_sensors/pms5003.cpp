@@ -216,7 +216,7 @@ const char* SensorData::do_sensor_err_to_str(const uint64_t err) const noexcept
 namespace Pms5003 {
 
 Sensor::Sensor(Sensor&& other) noexcept:
-        HomerSensor(std::move(other)),
+        HomerSensor(other._refresh_every, other._last_update),
         port{other.port},
         uart_buffer{other.uart_buffer},
         data{std::move(other.data)}
@@ -246,7 +246,9 @@ Sensor& Sensor::operator=(Sensor&& other) noexcept
 
     other.uart_buffer = nullptr;
 
-    HomerSensor::operator=(std::move(other));
+    // HomerSensor::operator=(std::move(other));
+    this->_refresh_every = other._refresh_every;
+    this->_last_update = other._last_update;
 
     return *this;
 }
@@ -254,6 +256,7 @@ Sensor& Sensor::operator=(Sensor&& other) noexcept
 Sensor::~Sensor() noexcept
 {
     delete[] this->uart_buffer;
+    this->uart_buffer = nullptr;
 }
 
 void Sensor::refresh_data() noexcept

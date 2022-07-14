@@ -211,7 +211,7 @@ SensorData::SensorData() noexcept:
 namespace S8 {
 
 Sensor::Sensor(Sensor&& other) noexcept:
-        HomerSensor<SensorData>(std::move(other)),
+        HomerSensor<SensorData>(other._refresh_every, other._last_update),
         port{other.port},
         uart_buffer{other.uart_buffer},
         abc_days{other.abc_days},
@@ -258,6 +258,7 @@ Sensor& Sensor::operator=(Sensor&& other) noexcept
 Sensor::~Sensor() noexcept
 {
     delete[] this->uart_buffer;
+    this->uart_buffer = nullptr;
 }
 
 

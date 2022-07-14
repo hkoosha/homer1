@@ -44,7 +44,9 @@ const char* err_to_string(uint64_t err) noexcept;
 
 class SensorData final : public HomerSensorData
 {
+
 public:
+
     SensorData& operator=(const SensorData& other) noexcept;
 
     SensorData& operator=(SensorData&& other) noexcept;
@@ -63,6 +65,7 @@ public:
     float temperature;
 
 protected:
+
     void do_dump(std::stringstream& ss) const noexcept override;
 
     void do_dump(HomerSensorDump& map) const noexcept override;
@@ -75,7 +78,9 @@ protected:
 
 class Sensor final : public HomerSensor<SensorData>
 {
+
 public:
+
     Sensor& operator=(const Sensor& other) = delete;
 
     Sensor(const Sensor& other) = delete;
@@ -99,11 +104,13 @@ public:
 
 
 protected:
+
     void refresh_data() noexcept override;
 
     SensorData& get_raw_data() noexcept override;
 
 private:
+
     HwErr read_pressure(int32_t b5,
                         uint32_t& pressure) noexcept;
 
@@ -133,6 +140,7 @@ private:
     int16_t mb{};
     int16_t mc{};
     int16_t md{};
+
 };
 
 }

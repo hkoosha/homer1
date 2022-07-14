@@ -146,23 +146,20 @@ public:
 
     HomerSensor(const HomerSensor& other) = delete;
 
+    HomerSensor(HomerSensor&& other) noexcept = delete;
+
 
     HomerSensor& operator=(HomerSensor&& other) noexcept
     {
         if (this == &other)
             return *this;
 
-        this->refresh_every = other.refresh_every;
-        this->last_update = other.last_update;
+        this->_refresh_every = other._refresh_every;
+        this->_last_update = other._last_update;
 
         return *this;
     }
 
-    HomerSensor(HomerSensor&& other) noexcept:
-            refresh_every{other.refresh_every},
-            last_update{other.last_update}
-    {
-    }
 
     virtual ~HomerSensor() noexcept = default;
 
@@ -172,7 +169,7 @@ public:
         DATA& d = this->get_raw_data();
         HomerSensorData& hsd = d;
 
-        if (hsd.error.has_error() || (now_millis() - this->last_update) > this->refresh_every) {
+        if (hsd.error.has_error() || (now_millis() - this->_last_update) > this->_refresh_every) {
             hsd.invalidate();
             hsd._get_error().mark_ok_no_data();
             hsd.start_read();
@@ -180,7 +177,7 @@ public:
             hsd.end_read();
             if (hsd.error.has_error())
                 hsd.invalidate();
-            this->last_update = now_millis();
+            this->_last_update = now_millis();
         }
 
         return d;
@@ -188,18 +185,25 @@ public:
 
 protected:
     explicit HomerSensor(uint64_t refresh_every) noexcept:
-            refresh_every{refresh_every},
-            last_update{0}
+            _refresh_every{refresh_every},
+            _last_update{0}
     {
     }
+
+    HomerSensor(uint64_t refresh_every,
+                uint64_t last_update) noexcept:
+            _refresh_every{refresh_every},
+            _last_update{last_update}
+    {
+    }
+
 
     virtual void refresh_data() noexcept = 0;
 
     virtual DATA& get_raw_data() noexcept = 0;
 
-private:
-    uint64_t refresh_every;
-    uint64_t last_update;
+    uint64_t _refresh_every;
+    uint64_t _last_update;
 };
 
 }

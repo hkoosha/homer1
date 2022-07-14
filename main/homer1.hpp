@@ -29,9 +29,9 @@ const i2c_port_t SHT3X_I2C_PORT = I2C_NUM_1;
 const int SHT3X_I2C_SDA_PIN = 17;
 const int SHT3X_I2C_SCL_PIN = 18;
 
-const i2c_port_t CCSM811_I2C_PORT = I2C_NUM_1;
-const int CCSM811_I2C_SDA_PIN = 17;
-const int CCSM811_I2C_SCL_PIN = 18;
+const i2c_port_t CCS811_I2C_PORT = I2C_NUM_1;
+const int CCS811_I2C_SDA_PIN = 17;
+const int CCS811_I2C_SCL_PIN = 18;
 
 }
 

@@ -54,29 +54,35 @@ public:
     ~Device() noexcept = default;
 
 
-    HwErr write_to_slave(uint8_t addr,
-                         const uint8_t* data,
-                         size_t size) const noexcept;
+    [[nodiscard]] HwErr write_to_slave(uint8_t addr,
+                                       const uint8_t* data,
+                                       size_t size) const noexcept;
 
-    HwErr read_from_slave(uint8_t addr,
-                          uint8_t* data,
-                          size_t size) const noexcept;
+    [[nodiscard]] HwErr read_from_slave(uint8_t addr,
+                                        uint8_t* data,
+                                        size_t size) const noexcept;
+
+    [[nodiscard]] HwErr read_from_slave(uint8_t addr,
+                                        uint8_t reg,
+                                        uint8_t* data,
+                                        size_t size) const noexcept;
+
 
     [[nodiscard]] HwErr write(uint8_t addr,
                               uint8_t,
                               uint8_t) const noexcept;
 
-    HwErr read_int16(uint8_t addr,
-                     uint8_t reg,
-                     int16_t& value) const noexcept;
+    [[nodiscard]] HwErr read_int16(uint8_t addr,
+                                   uint8_t reg,
+                                   int16_t& value) const noexcept;
 
-    HwErr read_uint16(uint8_t addr,
-                      uint8_t reg,
-                      uint16_t& value) const noexcept;
+    [[nodiscard]] HwErr read_uint16(uint8_t addr,
+                                    uint8_t reg,
+                                    uint16_t& value) const noexcept;
 
-    HwErr read_uint32(uint8_t addr,
-                      uint8_t reg,
-                      uint32_t& value) const noexcept;
+    [[nodiscard]] HwErr read_uint32(uint8_t addr,
+                                    uint8_t reg,
+                                    uint32_t& value) const noexcept;
 
 private:
     i2c_port_t i2c_num;
