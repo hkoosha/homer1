@@ -10,7 +10,55 @@
 using std::uint32_t;
 using std::uint64_t;
 
+// Error
+namespace homer1 {
 
+const char* err_to_string(const uint64_t err) noexcept
+{
+    switch (err) {
+        case ERROR_NO_DATA_AVAILABLE:
+            return "no_data_available";
+
+        case ERROR_NONE:
+            return "NO_ERROR";
+
+        default:
+            return nullptr;
+    }
+}
+
+}
+
+// CRC
+namespace homer1 {
+
+// https://github.com/SFeli/ESP32_S8/blob/master/ESP32_S8_01.ino
+uint16_t modbus_crc(const uint8_t* buf,
+                    const size_t len) noexcept
+{
+    uint16_t crc = 0xFFFF;
+
+    for (size_t pos = 0; pos < len; pos++) {
+        crc ^= static_cast<uint16_t>(buf[pos]); // XOR byte into least sig. byte of crc
+        for (uint8_t i = 8; i > 0; i--) {       // Loop over each bit
+            if ((crc & 0x0001) != 0) {          // If the LSB is set
+                crc >>= 1;                      // Shift right and XOR 0xA001
+                crc ^= 0xA001;
+            }
+            else {                              // else LSB is not set
+                crc >>= 1;                      // Just shift right
+            }
+        }
+    }
+
+    // Note, this number has low and high bytes swapped,
+    // so use it accordingly (or swap bytes)
+    return crc;
+}
+
+}
+
+// Pretty print
 namespace homer1 {
 
 std::string uint64_to_bin(uint64_t n,
@@ -65,22 +113,9 @@ void print_sensor_dump_header(std::stringstream& ss) noexcept
     ss << std::endl;
 }
 
-const char* err_to_string(const uint64_t err) noexcept
-{
-    switch (err) {
-        case ERROR_NO_DATA_AVAILABLE:
-            return "no_data_available";
-
-        case ERROR_NONE:
-            return "NO_ERROR";
-
-        default:
-            return nullptr;
-    }
 }
 
-}
-
+// HwErr
 namespace homer1 {
 
 namespace {
@@ -239,7 +274,7 @@ HwErr HwErr::make_ok() noexcept
 
 void HwErr::merge_from(const HwErr& other) noexcept
 {
-    this->_sensor_err |= other.sensor_err();
+    this->add_sensor_err(other.sensor_err());
     this->set_hardware_err(other.hardware_err());
 }
 

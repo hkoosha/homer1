@@ -23,40 +23,7 @@ const char* const SENSOR_ATTR_HW_ERR_BIN = "err_bin_hw";
 
 const char* const EMPTY = "";
 
-using HomerSensorDump = std::map<std::string, std::string>;
-
-// Because clion goes crazy if I make this insert call on site.
-template<typename V>
-inline void insert(HomerSensorDump& map,
-                   const char* name,
-                   const V& value) noexcept
-{
-    map.insert({name, std::to_string(value)});
-}
-
-// Because clion goes crazy if I make this insert call on site.
-inline void insert_str(HomerSensorDump& map,
-                       const char* name,
-                       const char* value) noexcept
-{
-    map.insert({name, value});
-}
-
-// Because clion goes crazy if I make this insert call on site.
-inline void insert_str(HomerSensorDump& map,
-                       const std::string& name,
-                       const std::string& value) noexcept
-{
-    map.insert({name, value});
-}
-
-// Because clion goes crazy if I make this insert call on site.
-template<typename T>
-inline void push_back(std::vector<T>& vector,
-                      const T& value) noexcept
-{
-    vector.push_back(value);
-}
+using HomerSensorDumpMap = std::map<std::string, std::string>;
 
 }
 
@@ -82,7 +49,7 @@ public:
 
     void dump(std::stringstream& ss) const noexcept;
 
-    [[nodiscard]] HomerSensorDump dump(bool prefix_with_sensor_name = true) const noexcept;
+    [[nodiscard]] HomerSensorDumpMap dump(bool prefix_with_sensor_name = true) const noexcept;
 
     void influxdb(std::vector<std::string>& measurements) const noexcept;
 
@@ -109,7 +76,7 @@ protected:
                     const char* name) noexcept;
 
 
-    virtual void do_dump(HomerSensorDump& map) const noexcept = 0;
+    virtual void do_dump(HomerSensorDumpMap& map) const noexcept = 0;
 
     virtual void do_dump(std::stringstream& ss) const noexcept = 0;
 
@@ -167,16 +134,16 @@ public:
     const DATA& read_data() noexcept
     {
         DATA& d = this->get_raw_data();
-        HomerSensorData& hsd = d;
+        HomerSensorData& data = d;
 
-        if (hsd.error.has_error() || (now_millis() - this->_last_update) > this->_refresh_every) {
-            hsd.invalidate();
-            hsd._get_error().mark_ok_no_data();
-            hsd.start_read();
+        if (data.error.has_error() || (now_millis() - this->_last_update) > this->_refresh_every) {
+            data.invalidate();
+            data._get_error().mark_ok_no_data();
+            data.start_read();
             this->refresh_data();
-            hsd.end_read();
-            if (hsd.error.has_error())
-                hsd.invalidate();
+            data.end_read();
+            if (data.error.has_error())
+                data.invalidate();
             this->_last_update = now_millis();
         }
 

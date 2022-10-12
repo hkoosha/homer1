@@ -34,6 +34,7 @@ const uint64_t ERROR_WRITE_REG = ERROR_READ_UINT32 << 1;
 //---
 const uint64_t ERROR_MAX = ERROR_WRITE_REG;
 
+// TODO is this used?
 const char* err_to_string(uint64_t err) noexcept;
 
 class Device final
@@ -48,43 +49,48 @@ public:
 
     Device(Device&& other) noexcept;;
 
-    Device(i2c_port_t i2c_num,
-           TickType_t delay) noexcept;
+    explicit Device(i2c_port_t i2c_num) noexcept;
 
     ~Device() noexcept = default;
 
 
+    void set_delay(TickType_t delay) noexcept;
+
+
     [[nodiscard]] HwErr write_to_slave(uint8_t addr,
                                        const uint8_t* data,
-                                       size_t size) const noexcept;
+                                       size_t size) const;
 
     [[nodiscard]] HwErr read_from_slave(uint8_t addr,
                                         uint8_t* data,
-                                        size_t size) const noexcept;
+                                        size_t size) const;
 
     [[nodiscard]] HwErr read_from_slave(uint8_t addr,
                                         uint8_t reg,
                                         uint8_t* data,
-                                        size_t size) const noexcept;
+                                        size_t size) const;
 
 
     [[nodiscard]] HwErr write(uint8_t addr,
                               uint8_t,
-                              uint8_t) const noexcept;
+                              uint8_t) const;
 
     [[nodiscard]] HwErr read_int16(uint8_t addr,
                                    uint8_t reg,
-                                   int16_t& value) const noexcept;
+                                   int16_t& value) const;
 
     [[nodiscard]] HwErr read_uint16(uint8_t addr,
                                     uint8_t reg,
-                                    uint16_t& value) const noexcept;
+                                    uint16_t& value) const;
 
     [[nodiscard]] HwErr read_uint32(uint8_t addr,
                                     uint8_t reg,
-                                    uint32_t& value) const noexcept;
+                                    uint32_t& value) const;
 
 private:
+
+    void ensure_delay_set() const;
+
     i2c_port_t i2c_num;
     TickType_t delay;
 };

@@ -27,19 +27,19 @@ void HomerSensorData::dump(std::stringstream& ss) const noexcept
     this->do_dump(ss);
 }
 
-HomerSensorDump HomerSensorData::dump(const bool prefix_with_sensor_name) const noexcept
+HomerSensorDumpMap HomerSensorData::dump(const bool prefix_with_sensor_name) const noexcept
 {
-    auto map = HomerSensorDump{};
+    auto map = HomerSensorDumpMap{};
 
     if (this->_time_to_read != std::numeric_limits<uint64_t>::max())
-        insert(map, SENSOR_ATTR_TIME_TO_READ, this->_time_to_read);
+        map.insert({SENSOR_ATTR_TIME_TO_READ, std::to_string(this->_time_to_read)});
 
-    insert(map, SENSOR_ATTR_HW_ERR, this->error.hardware_err());
-    insert(map, SENSOR_ATTR_SENSOR_ERR, this->error.sensor_err());
-    insert_str(map, SENSOR_ATTR_SENSOR_ERR_MSG, this->sensor_err_to_str());
-    insert_str(map, SENSOR_ATTR_HW_ERR_MSG, this->hw_err_to_str());
-    insert_str(map, SENSOR_ATTR_SENSOR_ERR_BIN, uint64_to_bin(this->error.sensor_err(), true));
-    insert_str(map, SENSOR_ATTR_HW_ERR_BIN, uint64_to_bin(this->error.hardware_err(), true));
+    map.insert({SENSOR_ATTR_HW_ERR, std::to_string(this->error.hardware_err())});
+    map.insert({SENSOR_ATTR_SENSOR_ERR, std::to_string(this->error.sensor_err())});
+    map.insert({SENSOR_ATTR_SENSOR_ERR_MSG, this->sensor_err_to_str()});
+    map.insert({SENSOR_ATTR_HW_ERR_MSG, this->hw_err_to_str()});
+    map.insert({SENSOR_ATTR_SENSOR_ERR_BIN, uint64_to_bin(this->error.sensor_err(), true)});
+    map.insert({SENSOR_ATTR_HW_ERR_BIN, uint64_to_bin(this->error.hardware_err(), true)});
 
     if (this->error.is_ok())
         this->do_dump(map);
@@ -48,9 +48,9 @@ HomerSensorDump HomerSensorData::dump(const bool prefix_with_sensor_name) const 
         return map;
 
     const std::string UNDERSCORE = "_";
-    auto named_map = HomerSensorDump{};
+    auto named_map = HomerSensorDumpMap{};
     for (const auto& item: map)
-        insert_str(named_map, this->name() + UNDERSCORE + item.first, item.second);
+        named_map.insert({this->name() + UNDERSCORE + item.first, item.second});
 
     return named_map;
 }
@@ -74,7 +74,7 @@ void HomerSensorData::influxdb(std::vector<std::string>& measurements) const noe
                           + "value="     // field
                           + value; // field value
 
-        push_back(measurements, str);
+        measurements.push_back(str);
     }
 }
 

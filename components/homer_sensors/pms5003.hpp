@@ -11,7 +11,6 @@
 using std::uint16_t;
 using std::uint32_t;
 using std::uint64_t;
-using std::endl;
 
 
 namespace homer1::Pms5003 {
@@ -39,8 +38,6 @@ const char* const SENSOR_ATTR_PARTICLES_25 = "particle_25";
 const char* const SENSOR_ATTR_PARTICLES_50 = "particle_50";
 const char* const SENSOR_ATTR_PARTICLES_100 = "particle_100";
 
-
-const char* err_to_string(uint64_t err) noexcept;
 
 class SensorData final : public HomerSensorData
 {
@@ -76,7 +73,7 @@ public:
 protected:
     void do_dump(std::stringstream& ss) const noexcept override;
 
-    void do_dump(HomerSensorDump& map) const noexcept override;
+    void do_dump(HomerSensorDumpMap& map) const noexcept override;
 
     [[nodiscard]] const char* do_sensor_err_to_str(uint64_t err) const noexcept override;
 

@@ -29,8 +29,6 @@ const char* const SENSOR_ATTR_TEMPERATURE = "temperature";
 const char* const SENSOR_ATTR_HUMIDITY = "humidity";
 
 
-const char* err_to_string(uint64_t err) noexcept;
-
 class SensorData final : public HomerSensorData
 {
 public:
@@ -55,7 +53,7 @@ protected:
 
     void do_dump(std::stringstream& ss) const noexcept override;
 
-    void do_dump(HomerSensorDump& map) const noexcept override;
+    void do_dump(HomerSensorDumpMap& map) const noexcept override;
 
     [[nodiscard]] const char* do_sensor_err_to_str(uint64_t err) const noexcept override;
 };
@@ -72,7 +70,7 @@ public:
 
     Sensor(Sensor&& other) noexcept;
 
-    explicit Sensor(i2c::Device i2c) noexcept;
+    explicit Sensor(i2c::Device* i2c);
 
     ~Sensor() noexcept override = default;
 
@@ -80,10 +78,10 @@ public:
 protected:
     void refresh_data() noexcept override;
 
-    SensorData& get_raw_data() noexcept override;
+    [[nodiscard]] SensorData& get_raw_data() noexcept override;
 
 private:
-    i2c::Device i2c;
+    i2c::Device* i2c;
     SensorData data;
 };
 

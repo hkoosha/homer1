@@ -7,8 +7,8 @@
 #include <string>
 
 #include "esp_event.h"
-#include "esp_log.h"
 #include "esp_wifi.h"
+#include "esp_log.h"
 #include "nvs_flash.h"
 #include "driver/uart.h"
 #include "driver/i2c.h"
@@ -16,13 +16,15 @@
 #include "esp_http_server.h"
 #include "esp_heap_caps.h"
 
-#include "homer_util.hpp"
 #include "s8.hpp"
 #include "pms5003.hpp"
 #include "bmp180.hpp"
 #include "sht3x.hpp"
-#include "homer_helper.c"
+
+
 #include "homer1.hpp"
+#include "homer_util.hpp"
+#include "homer_helper.h"
 
 using namespace homer1;
 
@@ -92,6 +94,7 @@ public:
         this->pms5003 = other.pms5003;
         this->bmp180 = other.bmp180;
         this->sht3x = other.sht3x;
+
         other.s8 = nullptr;
         other.pms5003 = nullptr;
         other.bmp180 = nullptr;
@@ -101,12 +104,20 @@ public:
     SensorPeripheral(S8::Sensor* s8,
                      Pms5003::Sensor* pms5003,
                      Bmp180::Sensor* bmp180,
-                     Sht3x::Sensor* sht3x) noexcept:
+                     Sht3x::Sensor* sht3x) :
             s8{s8},
             pms5003{pms5003},
             bmp180{bmp180},
             sht3x{sht3x}
     {
+        if (!this->s8)
+            throw std::runtime_error("s8 is null");
+        if (!this->pms5003)
+            throw std::runtime_error("pms5003 is null");
+        if (!this->bmp180)
+            throw std::runtime_error("bmp180 is null");
+        if (!this->sht3x)
+            throw std::runtime_error("sht3x is null");
     }
 
     ~SensorPeripheral()
@@ -115,6 +126,7 @@ public:
         delete this->pms5003;
         delete this->bmp180;
         delete this->sht3x;
+
         this->s8 = nullptr;
         this->pms5003 = nullptr;
         this->bmp180 = nullptr;
@@ -127,6 +139,7 @@ class Sensor final
 public:
     SensorData data;
     volatile bool loop{true};
+    std::vector<i2c::Device*> i2c_devices{};
 
     Sensor& operator=(const Sensor& other) = delete;
 
@@ -138,10 +151,9 @@ public:
 
     ~Sensor() noexcept
     {
-        const auto err = httpd_stop(this->prometheus_server);
-        if (err != ESP_OK)
-            ESP_LOGE(MY_TAG, "failed to close httpd server: %s", esp_err_to_name(err));
-        this->prometheus_server = nullptr;
+        for (auto i2c: this->i2c_devices)
+            delete i2c;
+        this->i2c_devices.clear();
     }
 
 
@@ -153,15 +165,6 @@ public:
         this->mutex = xSemaphoreCreateMutex();
         if (!this->mutex)
             throw std::runtime_error("could not allocate mutex");
-
-        if (my_is_wifi_enabled() && my_is_prometheus_enabled()) {
-            this->prometheus_server = prometheus_http_server(this);
-            if (!this->prometheus_server)
-                throw std::runtime_error("could not create server");
-        }
-        else {
-            ESP_LOGW(MY_TAG, "Prometheus endpoint disabled.");
-        }
     }
 
 
@@ -266,25 +269,25 @@ public:
 
         if (my_is_pms5003_enabled()) {
             ss << "[PMS5003]" << std::endl;
-            const HomerSensorDump pms5003_dump = this->data.pms5003.dump();
+            const HomerSensorDumpMap pms5003_dump = this->data.pms5003.dump();
             for (const auto& item: pms5003_dump)
                 ss << item.first << "=" << item.second << std::endl;
         }
         if (my_is_bmp180_enabled()) {
             ss << "[BMP180]" << std::endl;
-            const HomerSensorDump bmp180_dump = this->data.bmp180.dump();
+            const HomerSensorDumpMap bmp180_dump = this->data.bmp180.dump();
             for (const auto& item: bmp180_dump)
                 ss << item.first << "=" << item.second << std::endl;
         }
         if (my_is_s8_enabled()) {
             ss << "[S8]" << std::endl;
-            const HomerSensorDump s8_dump = this->data.s8.dump();
+            const HomerSensorDumpMap s8_dump = this->data.s8.dump();
             for (const auto& item: s8_dump)
                 ss << item.first << "=" << item.second << std::endl;
         }
         if (my_is_sht3x_enabled()) {
             ss << "[SHT3X]" << std::endl;
-            const HomerSensorDump sht3x_dump = this->data.sht3x.dump();
+            const HomerSensorDumpMap sht3x_dump = this->data.sht3x.dump();
             for (const auto& item: sht3x_dump)
                 ss << item.first << "=" << item.second << std::endl;
         }
@@ -337,7 +340,6 @@ public:
 private:
     SensorPeripheral peripheral;
     SemaphoreHandle_t mutex;
-    httpd_handle_t prometheus_server;
 
     void lock() const noexcept
     {
@@ -353,53 +355,32 @@ private:
 
 Sensor* make_sensor()
 {
+    auto i2c = new i2c::Device{SENSOR_I2C_PORT};
+
     auto sensor = new Sensor{
             {},
             SensorPeripheral{
-                    {
-                            new S8::Sensor{S8_UART_PORT}
-                    },
-                    {
-                            new Pms5003::Sensor{PMS5003_UART_PORT}
-                    },
-                    {
-                            new Bmp180::Sensor{
-                                    i2c::Device{
-                                            BMP180_I2C_PORT,
-                                            Bmp180::I2C_DELAY
-                                    },
-                                    Bmp180::SEA_LEVEL_PRESSURE,
-                                    Bmp180::OVERSAMPLING_ULTRA_HIGH_RES
-                            }
-                    },
-                    {
-                            new Sht3x::Sensor{
-                                    i2c::Device{
-                                            SHT3X_I2C_PORT,
-                                            Sht3x::I2C_DELAY
-                                    }
-                            }
-                    }
+                    new S8::Sensor{S8_UART_PORT},
+                    new Pms5003::Sensor{PMS5003_UART_PORT},
+                    new Bmp180::Sensor{i2c},
+                    new Sht3x::Sensor{i2c},
             }
     };
-
-    if (!sensor) {
-        ESP_LOGE(MY_TAG, "could not allocate sensor");
-        throw std::runtime_error("could not allocate sensor");
-    }
+    sensor->i2c_devices.push_back(i2c);
 
     return sensor;
 }
 
-void read_sensors(Sensor* sensor) noexcept
+void task_read_sensors(Sensor* sensor) noexcept
 {
+    // S8
     xTaskCreate(
             [](void* arg) {
                 auto* sensor0 = static_cast<Sensor*>(arg);
                 while (sensor0->loop) {
                     if (my_is_s8_enabled())
                         sensor0->update_s8();
-                    my_sleep_millis(MEASUREMENT_DELAY);
+                    my_sleep_millis(my_measurement_delay_millis());
                 }
             },
             "work_read_s8",
@@ -408,28 +389,15 @@ void read_sensors(Sensor* sensor) noexcept
             10,
             nullptr
     );
-    xTaskCreate(
-            [](void* arg) {
-                auto* sensor0 = static_cast<Sensor*>(arg);
-                while (sensor0->loop) {
-                    if (my_is_bmp180_enabled())
-                        sensor0->update_bmp180();
-                    my_sleep_millis(MEASUREMENT_DELAY);
-                }
-            },
-            "work_read_bmp180",
-            1024 * 3,
-            sensor,
-            10,
-            nullptr
-    );
+
+    // PMS5003
     xTaskCreate(
             [](void* arg) {
                 auto* sensor0 = static_cast<Sensor*>(arg);
                 while (sensor0->loop) {
                     if (my_is_pms5003_enabled())
                         sensor0->update_pms5003();
-                    my_sleep_millis(MEASUREMENT_DELAY);
+                    my_sleep_millis(my_measurement_delay_millis());
                 }
             },
             "work_read_pms5003",
@@ -438,16 +406,22 @@ void read_sensors(Sensor* sensor) noexcept
             10,
             nullptr
     );
+
+    // I2C sensors
     xTaskCreate(
             [](void* arg) {
                 auto* sensor0 = static_cast<Sensor*>(arg);
-                while (sensor0->loop) {
+                while ((my_is_bmp180_enabled() || my_is_sht3x_enabled()) && sensor0->loop) {
+                    if (my_is_bmp180_enabled())
+                        sensor0->update_bmp180();
+
                     if (my_is_sht3x_enabled())
                         sensor0->update_sht3x();
-                    my_sleep_millis(MEASUREMENT_DELAY);
+
+                    my_sleep_millis(my_measurement_delay_millis());
                 }
             },
-            "work_read_sht3x",
+            "work_read_bmp180",
             1024 * 3,
             sensor,
             10,
@@ -455,10 +429,13 @@ void read_sensors(Sensor* sensor) noexcept
     );
 }
 
-void dump_sensors(Sensor* sensor) noexcept
+void task_dump_sensors(Sensor* sensor) noexcept
 {
     xTaskCreate(
             [](void* arg) {
+                if (my_print_delay() <= 0)
+                    return;
+
                 my_sleep_millis(PRINT_INITIAL_DELAY);
 
                 auto* sensor0 = static_cast<Sensor*>(arg);
@@ -468,7 +445,7 @@ void dump_sensors(Sensor* sensor) noexcept
                     sensor0->dump_pretty_print(ss);
                     std::cout << ss.str();
 
-                    my_sleep_millis(PRINT_DELAY);
+                    my_sleep_millis((uint32_t) my_print_delay());
                 }
             },
             "work_dump_all",
@@ -478,6 +455,11 @@ void dump_sensors(Sensor* sensor) noexcept
             nullptr
     );
 }
+
+}
+
+// PROMETHEUS / INFLUXDB
+namespace {
 
 bool push(const char* const url,
           const char* const token_header,
@@ -538,7 +520,7 @@ bool push(const char* const url,
     }
 }
 
-void push_influxdb(Sensor* sensor) noexcept
+void task_push_influxdb(Sensor* sensor) noexcept
 {
     if (!my_is_wifi_enabled()) {
         ESP_LOGW(PUSHER_TAG, "Wifi not enabled, disabled pushing metrics.");
@@ -548,10 +530,14 @@ void push_influxdb(Sensor* sensor) noexcept
         ESP_LOGW(PUSHER_TAG, "InfluxDB URL not set, disabled pushing metrics.");
         return;
     }
+    if (my_influxdb_push_delay() <= 0) {
+        ESP_LOGW(PUSHER_TAG, "Invalid InfluxDB delay, push to InfluxDB disabled.");
+        return;
+    }
 
     xTaskCreate(
             [](void* arg) {
-                my_sleep_millis(PUSH_INITIAL_DELAY);
+                my_sleep_millis(my_influxdb_push_delay() * 2);
 
                 auto* sensor0 = static_cast<Sensor*>(arg);
 
@@ -598,7 +584,7 @@ void push_influxdb(Sensor* sensor) noexcept
 
                     push(url_str, token_header_str, ss);
 
-                    my_sleep_millis(PUSH_DELAY);
+                    my_sleep_millis(my_influxdb_push_delay());
                 }
             },
             "work_dump_all",
@@ -674,7 +660,7 @@ httpd_handle_t prometheus_http_server(Sensor* sensor)
     }
 
     httpd_uri_t prometheus_handler_uri{};
-    prometheus_handler_uri.uri = PROMETHEUS_HANDLER_URI;
+    prometheus_handler_uri.uri = my_prometheus_uri();
     prometheus_handler_uri.method = HTTP_GET;
     prometheus_handler_uri.user_ctx = sensor;
     prometheus_handler_uri.handler = prometheus_http_server_handler;
@@ -691,6 +677,18 @@ httpd_handle_t prometheus_http_server(Sensor* sensor)
 
     ESP_LOGI(MY_TAG, "http server started on port: %d", CONFIG_MY_PROMETHEUS_PORT);
     return server;
+}
+
+void run_httpd_server(Sensor* sensor)
+{
+    if (my_is_wifi_enabled() && my_is_prometheus_enabled()) {
+        auto httpd = prometheus_http_server(sensor);
+        if (!httpd)
+            throw std::runtime_error("could not create prometheus server");
+    }
+    else {
+        ESP_LOGW(MY_TAG, "Prometheus endpoint disabled.");
+    }
 }
 
 }
@@ -816,7 +814,7 @@ void my_i2c_init(const i2c_port_t port,
                  const int scl_pin,
                  const uint32_t clock_speed) noexcept
 {
-    ESP_LOGI(I2C_TAG, "I2C num=%d sda=%d scl=%d clock=%d", port, sda_pin, scl_pin, clock_speed);
+    ESP_LOGI(I2C_TAG, "I2C num=%d sda=%d scl=%d clock=%lu", port, sda_pin, scl_pin, clock_speed);
 
     i2c_config_t i2c_conf;
     std::memset(&i2c_conf, 0, sizeof(i2c_conf));
@@ -868,30 +866,39 @@ extern "C" void app_main(void)
     ESP_LOGI(MY_TAG, "peripherals...");
 
     if (my_is_pms5003_enabled())
-        my_uart_init_8n1(PMS5003_UART_PORT, PMS5003_UART_TX_PIN, PMS5003_UART_RX_PIN);
+        my_uart_init_8n1(
+                PMS5003_UART_PORT,
+                my_pms5003_tx_pin(),
+                my_pms5003_rx_pin()
+        );
     else
         ESP_LOGW(MY_TAG, "PMS5003 disabled");
 
     if (my_is_s8_enabled())
-        my_uart_init_8n1(S8_UART_PORT, S8_UART_TX_PIN, S8_UART_RX_PIN);
+        my_uart_init_8n1(
+                S8_UART_PORT,
+                my_s8_tx_pin(),
+                my_s8_rx_pin()
+        );
     else
         ESP_LOGW(MY_TAG, "s8 disabled");
 
-    if (my_is_bmp180_enabled())
-        my_i2c_init(BMP180_I2C_PORT, BMP180_I2C_SDA_PIN, BMP180_I2C_SCL_PIN, MY_I2C_CLOCK_SPEED);
+    if (my_needs_sensor_i2c())
+        my_i2c_init(
+                SENSOR_I2C_PORT,
+                my_sensors_i2c_sda_pin(),
+                my_sensors_i2c_scl_pin(),
+                MY_I2C_CLOCK_SPEED
+        );
     else
         ESP_LOGW(MY_TAG, "bmp180 disabled");
-
-    if (my_is_sht3x_enabled())
-        my_i2c_init(SHT3X_I2C_PORT, SHT3X_I2C_SDA_PIN, SHT3X_I2C_SCL_PIN, MY_I2C_CLOCK_SPEED);
-    else
-        ESP_LOGW(MY_TAG, "sht3x disabled");
 
     ESP_LOGI(MY_TAG, "sensors...");
     auto sensor = make_sensor();
 
     ESP_LOGI(MY_TAG, "start...");
-    read_sensors(sensor);
-    dump_sensors(sensor);
-    push_influxdb(sensor);
+    task_read_sensors(sensor);
+    task_dump_sensors(sensor);
+    task_push_influxdb(sensor);
+    run_httpd_server(sensor);
 }
