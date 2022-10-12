@@ -40,35 +40,31 @@ float calculate_temperature(const int32_t b5) noexcept
     return f / 10.0F;
 }
 
-}
-
-namespace Bmp180 {
-
-const char* err_to_string(const uint64_t err) noexcept
+const char* bmp180_err_to_string(const uint64_t err) noexcept
 {
     switch (err) {
-        case ERROR_NOT_INITIALIZED:
+        case Bmp180::ERROR_NOT_INITIALIZED:
             return "not_initialized";
 
-        case ERROR_ALREADY_INITIALIZED:
+        case Bmp180::ERROR_ALREADY_INITIALIZED:
             return "already_initialized";
 
-        case ERROR_INIT:
+        case Bmp180::ERROR_INIT:
             return "init";
 
-        case ERROR_READ_SENSOR_ROM:
+        case Bmp180::ERROR_READ_SENSOR_ROM:
             return "read_sensor_rom";
 
-        case ERROR_READ_UNCOMPENSATED_TEMPERATURE:
+        case Bmp180::ERROR_READ_UNCOMPENSATED_TEMPERATURE:
             return "read_uncompensated_temperature";
 
-        case ERROR_READ_UNCOMPENSATED_PRESSURE:
+        case Bmp180::ERROR_READ_UNCOMPENSATED_PRESSURE:
             return "read_uncompensated_pressure";
 
-        case ERROR_CALCULATE_B5:
+        case Bmp180::ERROR_CALCULATE_B5:
             return "calculate_b5";
 
-        case ERROR_READ_PRESSURE:
+        case Bmp180::ERROR_READ_PRESSURE:
             return "read_pressure";
 
         default:
@@ -78,6 +74,7 @@ const char* err_to_string(const uint64_t err) noexcept
 
 }
 
+// Data
 namespace Bmp180 {
 
 SensorData::SensorData() noexcept:
@@ -126,10 +123,10 @@ void SensorData::do_dump(std::stringstream& ss) const noexcept
     ss << "pressure:     " << this->pressure << std::endl;
 }
 
-void SensorData::do_dump(HomerSensorDump& map) const noexcept
+void SensorData::do_dump(HomerSensorDumpMap& map) const noexcept
 {
-    insert(map, SENSOR_ATTR_PRESSURE, this->pressure);
-    insert(map, SENSOR_ATTR_TEMPERATURE, this->temperature);
+    map.insert({SENSOR_ATTR_PRESSURE, std::to_string(this->pressure)});
+    map.insert({SENSOR_ATTR_TEMPERATURE, std::to_string(this->temperature)});
 }
 
 
@@ -141,23 +138,26 @@ void SensorData::invalidate() noexcept
 
 const char* SensorData::do_sensor_err_to_str(const uint64_t err) const noexcept
 {
-    return err_to_string(err);
+    return bmp180_err_to_string(err);
 }
 
 }
 
+// Sensor
 namespace Bmp180 {
 
-Sensor::Sensor(i2c::Device i2c,
+Sensor::Sensor(i2c::Device* i2c,
                const uint32_t reference_pressure,
-               const int32_t oversampling) noexcept:
+               const int32_t oversampling) :
         HomerSensor(I2C_DELAY),
         reference_pressure{reference_pressure},
         oversampling{oversampling},
-        i2c{std::move(i2c)},
+        i2c{i2c},
         initialized{false},
         data{}
 {
+    if (!this->i2c)
+        throw std::runtime_error("i2c is null");
 }
 
 Sensor& Sensor::operator=(Sensor&& other) noexcept
@@ -167,7 +167,7 @@ Sensor& Sensor::operator=(Sensor&& other) noexcept
 
     this->reference_pressure = other.reference_pressure;
     this->oversampling = other.oversampling;
-    this->i2c = std::move(other.i2c);
+    this->i2c = other.i2c;
     this->initialized = other.initialized;
     this->data = std::move(other.data);
 
@@ -192,7 +192,7 @@ Sensor::Sensor(Sensor&& other) noexcept:
         HomerSensor(other._refresh_every, other._last_update),
         reference_pressure{other.reference_pressure},
         oversampling{other.oversampling},
-        i2c{std::move(other.i2c)},
+        i2c{other.i2c},
         initialized{other.initialized},
         data{std::move(other.data)}
 {
@@ -272,7 +272,10 @@ HwErr Sensor::read_pressure(const int32_t b5,
 
 HwErr Sensor::read_uncompensated_pressure(uint32_t& up) noexcept
 {
-    auto err = this->i2c.write(I2C_ADDR, CONTROL, READ_PRESSURE_CMD + (this->oversampling << 6));
+
+    this->i2c->set_delay(I2C_DELAY);
+
+    auto err = this->i2c->write(I2C_ADDR, CONTROL, READ_PRESSURE_CMD + (this->oversampling << 6));
     if (err.has_error()) {
         ESP_LOGE(NAME, "read_uncompensated_pressure failed");
         err.add_sensor_err(ERROR_READ_UNCOMPENSATED_PRESSURE);
@@ -281,7 +284,7 @@ HwErr Sensor::read_uncompensated_pressure(uint32_t& up) noexcept
 
     my_sleep_ticks(2 + (3 << this->oversampling));
 
-    err = this->i2c.read_uint32(I2C_ADDR, DATA_TO_READ, up);
+    err = this->i2c->read_uint32(I2C_ADDR, DATA_TO_READ, up);
     if (err.has_error()) {
         ESP_LOGE(NAME, "read_uncompensated_pressure failed");
         err.add_sensor_err(ERROR_READ_UNCOMPENSATED_PRESSURE);
@@ -294,7 +297,9 @@ HwErr Sensor::read_uncompensated_pressure(uint32_t& up) noexcept
 
 HwErr Sensor::read_uncompensated_temperature(int16_t& temp) noexcept
 {
-    auto err = this->i2c.write(I2C_ADDR, CONTROL, READ_TEMP_CMD);
+    this->i2c->set_delay(I2C_DELAY);
+
+    auto err = this->i2c->write(I2C_ADDR, CONTROL, READ_TEMP_CMD);
     if (err.has_error()) {
         ESP_LOGE(NAME, "read_uncompensated_temperature failed");
         err.add_sensor_err(ERROR_READ_UNCOMPENSATED_TEMPERATURE);
@@ -303,7 +308,7 @@ HwErr Sensor::read_uncompensated_temperature(int16_t& temp) noexcept
 
     my_sleep_ticks(5);
 
-    err = this->i2c.read_int16(I2C_ADDR, DATA_TO_READ, temp);
+    err = this->i2c->read_int16(I2C_ADDR, DATA_TO_READ, temp);
     if (err.has_error()) {
         ESP_LOGE(NAME, "read_uncompensated_temperature failed");
         err.add_sensor_err(ERROR_READ_UNCOMPENSATED_TEMPERATURE);
@@ -337,8 +342,10 @@ HwErr Sensor::init() noexcept
         return HwErr::make_ok();
     }
 
+    this->i2c->set_delay(I2C_DELAY);
+
     const uint8_t reg = 0x00;
-    auto err = this->i2c.write_to_slave(I2C_ADDR, &reg, 1);
+    auto err = this->i2c->write_to_slave(I2C_ADDR, &reg, 1);
     this->data._get_error().merge_from(err);
     if (err.has_error()) {
         ESP_LOGE(NAME, "init failed");
@@ -361,77 +368,79 @@ HwErr Sensor::init() noexcept
 
 HwErr Sensor::read_sensor_rom() noexcept
 {
-    auto err = this->i2c.read_int16(I2C_ADDR, CAL_AC1, this->ac1);
+    this->i2c->set_delay(I2C_DELAY);
+
+    auto err = this->i2c->read_int16(I2C_ADDR, CAL_AC1, this->ac1);
     if (err.has_error()) {
         ESP_LOGE(NAME, "rom read failed: ac1");
         err.add_sensor_err(ERROR_READ_SENSOR_ROM);
         return err;
     }
 
-    err = this->i2c.read_int16(I2C_ADDR, CAL_AC2, this->ac2);
+    err = this->i2c->read_int16(I2C_ADDR, CAL_AC2, this->ac2);
     if (err.has_error()) {
         ESP_LOGE(NAME, "rom read failed: ac2");
         err.add_sensor_err(ERROR_READ_SENSOR_ROM);
         return err;
     }
 
-    err = this->i2c.read_int16(I2C_ADDR, CAL_AC3, this->ac3);
+    err = this->i2c->read_int16(I2C_ADDR, CAL_AC3, this->ac3);
     if (err.has_error()) {
         ESP_LOGE(NAME, "rom read failed: ac3");
         err.add_sensor_err(ERROR_READ_SENSOR_ROM);
         return err;
     }
 
-    err = this->i2c.read_uint16(I2C_ADDR, CAL_AC4, this->ac4);
+    err = this->i2c->read_uint16(I2C_ADDR, CAL_AC4, this->ac4);
     if (err.has_error()) {
         ESP_LOGE(NAME, "rom read failed: ac4");
         err.add_sensor_err(ERROR_READ_SENSOR_ROM);
         return err;
     }
 
-    err = this->i2c.read_uint16(I2C_ADDR, CAL_AC5, this->ac5);
+    err = this->i2c->read_uint16(I2C_ADDR, CAL_AC5, this->ac5);
     if (err.has_error()) {
         ESP_LOGE(NAME, "rom read failed: ac5");
         err.add_sensor_err(ERROR_READ_SENSOR_ROM);
         return err;
     }
 
-    err = this->i2c.read_uint16(I2C_ADDR, CAL_AC6, this->ac6);
+    err = this->i2c->read_uint16(I2C_ADDR, CAL_AC6, this->ac6);
     if (err.has_error()) {
         ESP_LOGE(NAME, "rom read failed: ac6");
         err.add_sensor_err(ERROR_READ_SENSOR_ROM);
         return err;
     }
 
-    err = this->i2c.read_int16(I2C_ADDR, CAL_B1, this->b1);
+    err = this->i2c->read_int16(I2C_ADDR, CAL_B1, this->b1);
     if (err.has_error()) {
         ESP_LOGE(NAME, "rom read failed: b1");
         err.add_sensor_err(ERROR_READ_SENSOR_ROM);
         return err;
     }
 
-    err = this->i2c.read_int16(I2C_ADDR, CAL_B2, this->b2);
+    err = this->i2c->read_int16(I2C_ADDR, CAL_B2, this->b2);
     if (err.has_error()) {
         ESP_LOGE(NAME, "rom read failed: b2");
         err.add_sensor_err(ERROR_READ_SENSOR_ROM);
         return err;
     }
 
-    err = this->i2c.read_int16(I2C_ADDR, CAL_MB, this->mb);
+    err = this->i2c->read_int16(I2C_ADDR, CAL_MB, this->mb);
     if (err.has_error()) {
         ESP_LOGE(NAME, "rom read failed: mb");
         err.add_sensor_err(ERROR_READ_SENSOR_ROM);
         return err;
     }
 
-    err = this->i2c.read_int16(I2C_ADDR, CAL_MC, this->mc);
+    err = this->i2c->read_int16(I2C_ADDR, CAL_MC, this->mc);
     if (err.has_error()) {
         ESP_LOGE(NAME, "rom read failed: mc");
         err.add_sensor_err(ERROR_READ_SENSOR_ROM);
         return err;
     }
 
-    err = this->i2c.read_int16(I2C_ADDR, CAL_MD, this->md);
+    err = this->i2c->read_int16(I2C_ADDR, CAL_MD, this->md);
     if (err.has_error()) {
         ESP_LOGE(NAME, "rom read failed: md");
         err.add_sensor_err(ERROR_READ_SENSOR_ROM);

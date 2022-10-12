@@ -40,7 +40,7 @@ const char* const SENSOR_ATTR_PRESSURE = "pressure";
 const char* const SENSOR_ATTR_TEMPERATURE = "temperature";
 
 
-const char* err_to_string(uint64_t err) noexcept;
+class Sensor;
 
 class SensorData final : public HomerSensorData
 {
@@ -60,20 +60,23 @@ public:
     ~SensorData() noexcept override = default;
 
 
-    // TODO uint? or int? negative pressure? check datasheet again.
-    uint32_t pressure;
-    float temperature;
-
 protected:
 
     void do_dump(std::stringstream& ss) const noexcept override;
 
-    void do_dump(HomerSensorDump& map) const noexcept override;
+    void do_dump(HomerSensorDumpMap& map) const noexcept override;
 
     [[nodiscard]] const char* do_sensor_err_to_str(uint64_t err) const noexcept override;
 
     void invalidate() noexcept override;
 
+
+private:
+    friend class Sensor;
+
+    // TODO uint? or int? negative pressure? check datasheet again.
+    uint32_t pressure;
+    float temperature;
 };
 
 class Sensor final : public HomerSensor<SensorData>
@@ -90,15 +93,15 @@ public:
 
     Sensor(Sensor&& other) noexcept;
 
-    Sensor(i2c::Device i2c,
-           uint32_t reference_pressure,
-           int32_t oversampling) noexcept;
+    explicit Sensor(i2c::Device* i2c,
+                    uint32_t reference_pressure = SEA_LEVEL_PRESSURE,
+                    int32_t oversampling = OVERSAMPLING_ULTRA_HIGH_RES);
 
 
     ~Sensor() noexcept override = default;
 
 
-    HwErr init() noexcept;
+    [[nodiscard]] HwErr init() noexcept;
 
     [[nodiscard]] bool is_initialized() const noexcept;
 
@@ -107,25 +110,26 @@ protected:
 
     void refresh_data() noexcept override;
 
-    SensorData& get_raw_data() noexcept override;
+    [[nodiscard]] SensorData& get_raw_data() noexcept override;
+
 
 private:
 
-    HwErr read_pressure(int32_t b5,
-                        uint32_t& pressure) noexcept;
+    [[nodiscard]] HwErr read_pressure(int32_t b5,
+                                      uint32_t& pressure) noexcept;
 
-    HwErr read_uncompensated_pressure(uint32_t& up) noexcept;
+    [[nodiscard]] HwErr read_uncompensated_pressure(uint32_t& up) noexcept;
 
-    HwErr read_uncompensated_temperature(int16_t& temp) noexcept;
+    [[nodiscard]] HwErr read_uncompensated_temperature(int16_t& temp) noexcept;
 
-    HwErr calculate_b5(int32_t& b5) noexcept;
+    [[nodiscard]] HwErr calculate_b5(int32_t& b5) noexcept;
 
-    HwErr read_sensor_rom() noexcept;
+    [[nodiscard]] HwErr read_sensor_rom() noexcept;
 
 
     uint32_t reference_pressure;
     int32_t oversampling = 3;
-    i2c::Device i2c;
+    i2c::Device* i2c;
     bool initialized;
     SensorData data;
 

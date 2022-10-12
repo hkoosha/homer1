@@ -42,11 +42,23 @@ menu "Homer1 Configuration"
         help
             InfluxDB bucket.
 
+    config MY_INFLUXDB_PUSH_DELAY
+        int "InfluxDB push delay"
+        default 5000
+        help
+            Delay between each push to InfluxDB.
+
     config MY_PROMETHEUS_PORT
         int "Prometheus port"
         default 80
         help
             Port to serve prometheus metrics on. Zero to disable.
+
+    config MY_PROMETHEUS_URI
+        string "Prometheus URI"
+        default "/metrics"
+        help
+            URI from which Prometheus is accessible.
 
 
     config MY_SENSOR_ENABLED_SHT3X
@@ -72,6 +84,54 @@ menu "Homer1 Configuration"
         default y
         help
             Whether if PMS5003 sensor is enabled or not.
+
+    config MY_PMS5003_TX_PIN
+        int "PMS5003 UART TX pin"
+        default 25
+        help
+            UART TX pin connected to PMS5003 sensor.
+
+    config MY_PMS5003_RX_PIN
+        int "PMS5003 UART RX pin"
+        default 26
+        help
+            UART RX pin connected to PMS5003 sensor.
+
+    config MY_S8_TX_PIN
+        int "S8 UART TX pin"
+        default 25
+        help
+            UART TX pin connected to S8 sensor.
+
+    config MY_S8_RX_PIN
+        int "S8 UART RX pin"
+        default 26
+        help
+            UART RX pin connected to S8 sensor.
+
+    config MY_SENSORS_I2C_SDA_PIN
+        int "Sensors I2C SDA pin"
+        default 33
+        help
+            I2C SDA pin connected to I2C sensors.
+
+    config MY_SENSORS_I2C_SCL_PIN
+        int "Sensors I2C SCL pin"
+        default 32
+        help
+            I2C SCL pin connected to I2C sensors.
+
+    config MY_MEASUREMENT_DELAY_MILLIS
+        int "Measurement delay millis"
+        default 1000
+        help
+            How many milliseconds to wait between each sensor measurement.
+
+    config MY_PRINT_DELAY
+        int "Print delay"
+        default 5000
+        help
+            Delay between each print to UART, value less than 1 disables printing.
 
 endmenu
 

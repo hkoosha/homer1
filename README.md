@@ -1,6 +1,8 @@
 ## What?
 
-A project to read out sensors connected to ESP32 and write to InfluxDB. ESP-IDF based.
+A project to read out sensors connected to ESP32 and write to InfluxDB and expose for Prometheus. ESP-IDF based.
+
+Raspberry Pi auto configuration included (for Grafana, Prometheus and InfluxDB).
 
 ## Sensors:
 
@@ -8,15 +10,12 @@ A project to read out sensors connected to ESP32 and write to InfluxDB. ESP-IDF 
 - SHT3X
 - S8 (SenseAir)
 - PMS5003
-- CSS811
+- CSS811 (TBD)
 
-## Warning!
+## ROADMAP
 
-- Not necessarily power consumption friendly.
+- Make it power consumption friendly.
 - SHT3X takes no calibration.
-- Sensor modes are not configurable, everything about sensor configuration is hard-coded.
-- If the Prometheus people find out the way I have written exporters, they'll cry.
-- Want something proper? have a look at https://gitlab.com/UncleRus/esp-idf-lib
 
 #### References
 

@@ -43,8 +43,6 @@ const char* const SENSOR_ATTR_ABC_DAYS = "abc_days";
 const char* const SENSOR_ATTR_SENSOR_ID = "id";
 const char* const SENSOR_ATTR_SENSOR_FW = "fw";
 
-const char* err_to_string(uint64_t err) noexcept;
-
 class SensorData final : public HomerSensorData
 {
 public:
@@ -69,7 +67,7 @@ public:
 protected:
     void do_dump(std::stringstream& ss) const noexcept override;
 
-    void do_dump(HomerSensorDump& map) const noexcept override;
+    void do_dump(HomerSensorDumpMap& map) const noexcept override;
 
     [[nodiscard]] const char* do_sensor_err_to_str(uint64_t err) const noexcept override;
 

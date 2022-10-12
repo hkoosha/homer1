@@ -13,7 +13,6 @@ using std::uint8_t;
 using std::uint16_t;
 using std::uint64_t;
 using std::int32_t;
-using std::endl;
 
 
 namespace homer1 {
@@ -29,107 +28,36 @@ const unsigned char CO2_REQ[] = {0xFE, 0x04, 0x00, 0x03, 0x00, 0x01, 0xD5, 0xC5}
 const auto UART_READ_WAIT = 500;
 const auto UART_READ_WAIT_TICKS = UART_READ_WAIT / portTICK_PERIOD_MS;
 
-// https://github.com/SFeli/ESP32_S8/blob/master/ESP32_S8_01.ino
-uint16_t modbus_crc(const uint8_t* buf,
-                    const size_t len) noexcept
-{
-    uint16_t crc = 0xFFFF;
-
-    for (size_t pos = 0; pos < len; pos++) {
-        crc ^= static_cast<uint16_t>(buf[pos]);         // XOR byte into least sig. byte of crc
-        for (uint8_t i = 8; i > 0; i--) {   // Loop over each bit
-            if ((crc & 0x0001) != 0) {        // If the LSB is set
-                crc >>= 1;                      // Shift right and XOR 0xA001
-                crc ^= 0xA001;
-            }
-            else {                            // else LSB is not set
-                crc >>= 1;                      // Just shift right
-            }
-        }
-    }
-
-    // Note, this number has low and high bytes swapped,
-    // so use it accordingly (or swap bytes)
-    return crc;
-}
-}
-
-namespace S8 {
-
-const char* err_to_string(const uint64_t err) noexcept
-{
-    switch (err) {
-        case ERROR_UART_WRITE_BYTES:
-            return "uart_write_bytes";
-
-        case ERROR_UART_WRITE_BYTES_LEN_TOO_BIG:
-            return "uart_write_bytes_len_too_big";
-
-        case ERROR_UART_WRITE_BYTES_LEN_TOO_SHORT:
-            return "uart_write_bytes_len_too_short";
-
-        case ERROR_UART_READ_BYTES:
-            return "uart_read_bytes";
-
-        case ERROR_UART_READ_BYTES_LEN_TOO_SHORT:
-            return "uart_read_bytes_len_too_short";
-
-        case ERROR_UART_READ_BYTES_LEN_TOO_BIG:
-            return "uart_read_bytes_len_too_big";
-
-        case ERROR_UART_READ_BYTES_BAD_CRC:
-            return "uart_read_bytes_bad_crc";
-
-        case ERROR_READ_REG:
-            return "read_reg";
-
-        case ERROR_READ_CO2:
-            return "read_co2";
-
-        case ERROR_READ_ABC_DAYS:
-            return "read_abc_days";
-
-        case ERROR_READ_SENSOR_ID:
-            return "read_sensor_id";
-
-        case ERROR_READ_SENSOR_FW:
-            return "read_sensor_fw";
-
-        default:
-            return nullptr;
-    }
-}
-
 }
 
 namespace S8 {
 
 void SensorData::do_dump(std::stringstream& ss) const noexcept
 {
-    ss << "CO2: " << this->co2 << endl;
+    ss << "CO2: " << this->co2 << std::endl;
 
     // ss << "ABC: " << this->abc_days
     //    << " (" << (this->abc_days / 24.) << " days)"
-    //    << endl;
+    //    << std::endl;
     //
     // ss << "SID: 0x" << std::uppercase << std::hex
     //    << this->sensor_id
     //    << std::dec << std::nouppercase
-    //    << endl;
+    //    << std::endl;
     //
     // ss << "SFW: 0x" << std::uppercase << std::hex
     //    << this->sensor_fw
     //    << std::dec << std::nouppercase
     //    << " (" << this->sensor_fw << ")"
-    //    << endl;
+    //    << std::endl;
 }
 
-void SensorData::do_dump(HomerSensorDump& map) const noexcept
+void SensorData::do_dump(HomerSensorDumpMap& map) const noexcept
 {
-    insert(map, SENSOR_ATTR_CO2, this->co2);
-    insert(map, SENSOR_ATTR_ABC_DAYS, this->abc_days);
-    insert(map, SENSOR_ATTR_SENSOR_ID, this->sensor_id);
-    insert(map, SENSOR_ATTR_SENSOR_FW, this->sensor_fw);
+    map.insert({SENSOR_ATTR_CO2, std::to_string(this->co2)});
+    map.insert({SENSOR_ATTR_ABC_DAYS, std::to_string(this->abc_days)});
+    map.insert({SENSOR_ATTR_SENSOR_ID, std::to_string(this->sensor_id)});
+    map.insert({SENSOR_ATTR_SENSOR_FW, std::to_string(this->sensor_fw)});
 }
 
 void SensorData::invalidate() noexcept
@@ -142,7 +70,46 @@ void SensorData::invalidate() noexcept
 
 const char* SensorData::do_sensor_err_to_str(const uint64_t err) const noexcept
 {
-    return err_to_string(err);
+    switch (err) {
+        case S8::ERROR_UART_WRITE_BYTES:
+            return "uart_write_bytes";
+
+        case S8::ERROR_UART_WRITE_BYTES_LEN_TOO_BIG:
+            return "uart_write_bytes_len_too_big";
+
+        case S8::ERROR_UART_WRITE_BYTES_LEN_TOO_SHORT:
+            return "uart_write_bytes_len_too_short";
+
+        case S8::ERROR_UART_READ_BYTES:
+            return "uart_read_bytes";
+
+        case S8::ERROR_UART_READ_BYTES_LEN_TOO_SHORT:
+            return "uart_read_bytes_len_too_short";
+
+        case S8::ERROR_UART_READ_BYTES_LEN_TOO_BIG:
+            return "uart_read_bytes_len_too_big";
+
+        case S8::ERROR_UART_READ_BYTES_BAD_CRC:
+            return "uart_read_bytes_bad_crc";
+
+        case S8::ERROR_READ_REG:
+            return "read_reg";
+
+        case S8::ERROR_READ_CO2:
+            return "read_co2";
+
+        case S8::ERROR_READ_ABC_DAYS:
+            return "read_abc_days";
+
+        case S8::ERROR_READ_SENSOR_ID:
+            return "read_sensor_id";
+
+        case S8::ERROR_READ_SENSOR_FW:
+            return "read_sensor_fw";
+
+        default:
+            return nullptr;
+    }
 }
 
 

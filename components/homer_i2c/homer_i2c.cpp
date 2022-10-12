@@ -14,6 +14,7 @@ const char* const TAG = "homer_i2c";
 
 namespace i2c {
 
+// TODO is this used?
 const char* err_to_string(const uint64_t err) noexcept
 {
     switch (err) {
@@ -65,10 +66,9 @@ const char* err_to_string(const uint64_t err) noexcept
 
 namespace i2c {
 
-Device::Device(const i2c_port_t i2c_num,
-               const TickType_t delay) noexcept:
+Device::Device(const i2c_port_t i2c_num) noexcept:
         i2c_num{i2c_num},
-        delay{delay}
+        delay{0}
 {
 }
 
@@ -95,8 +95,10 @@ namespace i2c {
 
 HwErr Device::write_to_slave(uint8_t addr,
                              const uint8_t* data,
-                             size_t size) const noexcept
+                             size_t size) const
 {
+    this->ensure_delay_set();
+
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
 
     esp_err_t err;
@@ -142,8 +144,10 @@ HwErr Device::write_to_slave(uint8_t addr,
 
 HwErr Device::read_from_slave(uint8_t addr,
                               uint8_t* data,
-                              size_t size) const noexcept
+                              size_t size) const
 {
+    this->ensure_delay_set();
+
     if (size == 0)
         return HwErr::make_ok();
 
@@ -202,8 +206,10 @@ HwErr Device::read_from_slave(uint8_t addr,
 HwErr Device::read_from_slave(uint8_t addr,
                               uint8_t reg,
                               uint8_t* data,
-                              size_t size) const noexcept
+                              size_t size) const
 {
+    this->ensure_delay_set();
+
     if (size == 0)
         return HwErr::make_ok();
 
@@ -269,7 +275,7 @@ HwErr Device::read_from_slave(uint8_t addr,
         return {ERROR_I2C_MASTER_STOP | ERROR_MASTER_READ_SLAVE, err};
     }
 
-    ESP_LOGI("DELAY", "DEL: %d", this->delay);
+    ESP_LOGI("DELAY", "DEL: %lu", this->delay);
     err = i2c_master_cmd_begin(this->i2c_num, cmd, this->delay);
     if (err != ESP_OK) {
         ESP_LOGE("homer_i2c::read_from_slave(reg)", "error i2c_master_cmd_begin: %d", err);
@@ -284,7 +290,7 @@ HwErr Device::read_from_slave(uint8_t addr,
 
 HwErr Device::read_int16(uint8_t addr,
                          const uint8_t reg,
-                         int16_t& value) const noexcept
+                         int16_t& value) const
 {
     auto err = this->write_to_slave(addr, &reg, 1);
 
@@ -304,7 +310,7 @@ HwErr Device::read_int16(uint8_t addr,
 
 HwErr Device::read_uint16(uint8_t addr,
                           const uint8_t reg,
-                          uint16_t& value) const noexcept
+                          uint16_t& value) const
 {
     auto err = this->write_to_slave(addr, &reg, 1);
 
@@ -324,7 +330,7 @@ HwErr Device::read_uint16(uint8_t addr,
 
 HwErr Device::read_uint32(uint8_t addr,
                           const uint8_t reg,
-                          uint32_t& value) const noexcept
+                          uint32_t& value) const
 {
     auto err = this->write_to_slave(addr, &reg, 1);
 
@@ -344,7 +350,7 @@ HwErr Device::read_uint32(uint8_t addr,
 
 HwErr Device::write(uint8_t addr,
                     const uint8_t a,
-                    const uint8_t b) const noexcept
+                    const uint8_t b) const
 {
     const uint8_t data[] = {a, b};
     const auto err = this->write_to_slave(addr, data, 2);
@@ -354,6 +360,18 @@ HwErr Device::write(uint8_t addr,
 
     ESP_LOGE("homer_i2c::write", "write 0x%02x-0x%02x failed", a, b);
     return err;
+}
+
+
+void Device::ensure_delay_set() const
+{
+    if (this->delay <= 0)
+        throw std::runtime_error("i2c delay not set");
+}
+
+void Device::set_delay(TickType_t new_delay) noexcept
+{
+    this->delay = new_delay;
 }
 
 }

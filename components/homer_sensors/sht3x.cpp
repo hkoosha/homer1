@@ -36,24 +36,7 @@ bool crc_matches(const uint8_t msb,
 
 }
 
-namespace Sht3x {
-
-const char* err_to_string(const uint64_t err) noexcept
-{
-    switch (err) {
-        case ERROR_BAD_CRC_TEMPERATURE:
-            return "bad_crc_temperature";
-
-        case ERROR_BAD_CRC_HUMIDITY:
-            return "bad_crc_humidity";
-
-        default:
-            return nullptr;
-    }
-}
-
-}
-
+// Data
 namespace Sht3x {
 
 SensorData& SensorData::operator=(const SensorData& other) noexcept
@@ -107,10 +90,10 @@ SensorData::SensorData() noexcept:
 }
 
 
-void SensorData::do_dump(HomerSensorDump& map) const noexcept
+void SensorData::do_dump(HomerSensorDumpMap& map) const noexcept
 {
-    insert(map, SENSOR_ATTR_TEMPERATURE, this->temperature);
-    insert(map, SENSOR_ATTR_HUMIDITY, this->humidity);
+    map.insert({SENSOR_ATTR_TEMPERATURE, std::to_string(this->temperature)});
+    map.insert({SENSOR_ATTR_HUMIDITY, std::to_string(this->humidity)});
 }
 
 void SensorData::do_dump(std::stringstream& ss) const noexcept
@@ -127,23 +110,35 @@ void SensorData::invalidate() noexcept
 
 const char* SensorData::do_sensor_err_to_str(const uint64_t err) const noexcept
 {
-    return err_to_string(err);
+    switch (err) {
+        case ERROR_BAD_CRC_TEMPERATURE:
+            return "bad_crc_temperature";
+
+        case ERROR_BAD_CRC_HUMIDITY:
+            return "bad_crc_humidity";
+
+        default:
+            return nullptr;
+    }
 }
 
 }
 
+// Sensor
 namespace Sht3x {
 
-Sensor::Sensor(i2c::Device i2c) noexcept:
+Sensor::Sensor(i2c::Device* i2c):
         HomerSensor<SensorData>(MEASUREMENT_GAP_MILLIS),
-        i2c{std::move(i2c)},
+        i2c{i2c},
         data{}
 {
+    if(!this->i2c)
+        throw std::runtime_error("i2c is null");
 }
 
 Sensor::Sensor(Sensor&& other) noexcept:
         HomerSensor<SensorData>(other._refresh_every, other._last_update),
-        i2c{std::move(other.i2c)},
+        i2c{other.i2c},
         data{std::move(other.data)}
 {
 }
@@ -153,7 +148,7 @@ Sensor& Sensor::operator=(Sensor&& other) noexcept
     if (this == &other)
         return *this;
 
-    this->i2c = std::move(other.i2c);
+    this->i2c = other.i2c;
     this->data = std::move(other.data);
 
     HomerSensor::operator=(std::move(other));
@@ -163,7 +158,9 @@ Sensor& Sensor::operator=(Sensor&& other) noexcept
 
 void Sensor::refresh_data() noexcept
 {
-    auto err = this->i2c.write(I2C_ADDR, 0x24, 0x00);
+    this->i2c->set_delay(I2C_DELAY);
+
+    auto err = this->i2c->write(I2C_ADDR, 0x24, 0x00);
     this->data._get_error().merge_from(err);
     if (err.has_error()) {
         ESP_LOGE(NAME, "i2c failed");
@@ -173,7 +170,7 @@ void Sensor::refresh_data() noexcept
     my_sleep_millis(30);
 
     uint8_t read[6];
-    err = this->i2c.read_from_slave(I2C_ADDR, read, 6);
+    err = this->i2c->read_from_slave(I2C_ADDR, read, 6);
     this->data._get_error().merge_from(err);
     if (err.has_error()) {
         ESP_LOGE(NAME, "i2c read from slave failed");

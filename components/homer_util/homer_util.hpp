@@ -15,6 +15,7 @@ using std::uint32_t;
 using std::uint64_t;
 
 
+// Error
 namespace homer1 {
 
 const uint64_t ERROR_NONE = 0;
@@ -24,6 +25,15 @@ const char* err_to_string(uint64_t err) noexcept;
 
 }
 
+// CRC
+namespace homer1 {
+
+uint16_t modbus_crc(const uint8_t* buf,
+                    const size_t len) noexcept;
+
+}
+
+// Sleep and delay
 namespace homer1 {
 
 inline void my_sleep_ticks(const size_t ticks) noexcept
@@ -34,9 +44,9 @@ inline void my_sleep_ticks(const size_t ticks) noexcept
     vTaskDelay(xDelay);
 }
 
-inline void my_sleep_millis(const uint32_t d) noexcept
+inline void my_sleep_millis(const uint32_t millis) noexcept
 {
-    vTaskDelay(pdMS_TO_TICKS(d));
+    vTaskDelay(pdMS_TO_TICKS(millis));
 }
 
 inline uint64_t now_millis() noexcept
@@ -47,6 +57,10 @@ inline uint64_t now_millis() noexcept
            : static_cast<uint64_t>(uptime / 1000);
 }
 
+}
+
+// Pretty print
+namespace homer1 {
 
 void print_sensor_dump_header(std::stringstream& ss) noexcept;
 
@@ -56,6 +70,7 @@ std::string uint64_to_bin(uint64_t n,
 
 }
 
+// HwErr
 namespace homer1 {
 
 class HwErr final
@@ -74,16 +89,17 @@ public:
 
     ~HwErr() noexcept = default;
 
-    static HwErr make_ok() noexcept;
 
-    static HwErr make_no_data() noexcept;
+    [[nodiscard]] static HwErr make_ok() noexcept;
 
-    static HwErr make_sensor_err(uint64_t err) noexcept;
+    [[nodiscard]] static HwErr make_no_data() noexcept;
 
-    static HwErr make_hardware_err(esp_err_t err) noexcept;
+    [[nodiscard]] static HwErr make_sensor_err(uint64_t err) noexcept;
 
-    static HwErr make(uint64_t sensor_err,
-                      esp_err_t hardware_err) noexcept;
+    [[nodiscard]] static HwErr make_hardware_err(esp_err_t err) noexcept;
+
+    [[nodiscard]] static HwErr make(uint64_t sensor_err,
+                                    esp_err_t hardware_err) noexcept;
 
 
     [[nodiscard]] uint64_t sensor_err() const noexcept;
@@ -123,6 +139,7 @@ public:
 private:
     uint64_t _sensor_err;
     esp_err_t _hardware_err;
+
 };
 
 }
