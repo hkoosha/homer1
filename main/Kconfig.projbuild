@@ -99,13 +99,13 @@ menu "Homer1 Configuration"
 
     config MY_S8_TX_PIN
         int "S8 UART TX pin"
-        default 25
+        default 13
         help
             UART TX pin connected to S8 sensor.
 
     config MY_S8_RX_PIN
         int "S8 UART RX pin"
-        default 26
+        default 27
         help
             UART RX pin connected to S8 sensor.
 
@@ -132,6 +132,12 @@ menu "Homer1 Configuration"
         default 5000
         help
             Delay between each print to UART, value less than 1 disables printing.
+
+    config MY_ENABLE_WRITE_TO_DISPLAY_ESP
+        bool "Enable write to displaying esp"
+        default true
+        help
+            Enable facility to write the sensor read outs to a second esp32 in charge of displaying data
 
 endmenu
 

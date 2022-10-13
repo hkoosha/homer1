@@ -14,6 +14,15 @@ int32_t my_print_delay()
     return CONFIG_MY_PRINT_DELAY;
 }
 
+bool my_enable_write_to_esp()
+{
+#ifdef CONFIG_MY_ENABLE_WRITE_TO_DISPLAY_ESP
+    return CONFIG_MY_ENABLE_WRITE_TO_DISPLAY_ESP;
+#else
+    return false;
+#endif
+}
+
 // ============================================================================
 
 inline wifi_init_config_t my_get_wifi_cfg()
@@ -34,7 +43,7 @@ inline bool my_is_prometheus_enabled()
     return CONFIG_MY_PROMETHEUS_PORT > 0;
 }
 
-const char* my_prometheus_uri()
+inline const char* my_prometheus_uri()
 {
     return CONFIG_MY_PROMETHEUS_URI;
 }

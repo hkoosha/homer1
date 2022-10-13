@@ -7,42 +7,41 @@
 #include <string>
 
 #include "esp_event.h"
-#include "esp_wifi.h"
 #include "esp_log.h"
+
+#include "esp_wifi.h"
 #include "nvs_flash.h"
-#include "driver/uart.h"
-#include "driver/i2c.h"
+#include "esp_heap_caps.h"
+
 #include "esp_http_client.h"
 #include "esp_http_server.h"
-#include "esp_heap_caps.h"
+
+#include "driver/uart.h"
+#include "driver/i2c.h"
+#include "driver/gpio.h"
+
 
 #include "s8.hpp"
 #include "pms5003.hpp"
 #include "bmp180.hpp"
 #include "sht3x.hpp"
 
-
 #include "homer1.hpp"
 #include "homer_util.hpp"
 #include "homer_helper.h"
 
 using namespace homer1;
+using namespace homer1cfg;
 
 using std::uint16_t;
 using std::uint32_t;
 
-using namespace homer1cfg;
 
 // SENSORS
 namespace {
 
 const char* const MY_TAG = "homer1";
 const char* const PUSHER_TAG = "influx_pusher";
-
-class Sensor;
-
-httpd_handle_t prometheus_http_server(Sensor* sensor);
-
 
 class SensorData final
 {
@@ -853,6 +852,12 @@ void my_nvs_init() noexcept
 }
 
 
+// GPIO & INTERRUPT
+namespace {
+
+}
+
+
 extern "C" void app_main(void)
 {
     ESP_LOGI(MY_TAG, "init...");
@@ -893,7 +898,7 @@ extern "C" void app_main(void)
     else
         ESP_LOGW(MY_TAG, "bmp180 disabled");
 
-    ESP_LOGI(MY_TAG, "sensors...");
+    ESP_LOGI(MY_TAG, "making sensors...");
     auto sensor = make_sensor();
 
     ESP_LOGI(MY_TAG, "start...");
