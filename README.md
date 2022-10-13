@@ -10,7 +10,7 @@ Raspberry Pi auto configuration included (for Grafana, Prometheus and InfluxDB).
 - SHT3X
 - S8 (SenseAir)
 - PMS5003
-- CSS811 (TBD)
+- GY-SGP30 ECO2 (TBD)
 
 ## ROADMAP
 
