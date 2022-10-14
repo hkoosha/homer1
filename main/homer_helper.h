@@ -14,13 +14,20 @@ int32_t my_print_delay()
     return CONFIG_MY_PRINT_DELAY;
 }
 
-bool my_enable_write_to_esp()
+// ============================================================================
+
+inline bool my_enable_write_to_esp()
 {
 #ifdef CONFIG_MY_ENABLE_WRITE_TO_DISPLAY_ESP
     return CONFIG_MY_ENABLE_WRITE_TO_DISPLAY_ESP;
 #else
     return false;
 #endif
+}
+
+inline gpio_num_t my_write_to_esp_gpio_pin()
+{
+    return (gpio_num_t) CONFIG_MY_WRITE_TO_DISPLAY_GPIO_INTERRUPT_PIN;
 }
 
 // ============================================================================

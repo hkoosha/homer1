@@ -88,36 +88,42 @@ menu "Homer1 Configuration"
     config MY_PMS5003_TX_PIN
         int "PMS5003 UART TX pin"
         default 25
+        range 0 39
         help
             UART TX pin connected to PMS5003 sensor.
 
     config MY_PMS5003_RX_PIN
         int "PMS5003 UART RX pin"
         default 26
+        range 0 39
         help
             UART RX pin connected to PMS5003 sensor.
 
     config MY_S8_TX_PIN
         int "S8 UART TX pin"
         default 13
+        range 0 39
         help
             UART TX pin connected to S8 sensor.
 
     config MY_S8_RX_PIN
         int "S8 UART RX pin"
         default 27
+        range 0 39
         help
             UART RX pin connected to S8 sensor.
 
     config MY_SENSORS_I2C_SDA_PIN
         int "Sensors I2C SDA pin"
         default 33
+        range 0 39
         help
             I2C SDA pin connected to I2C sensors.
 
     config MY_SENSORS_I2C_SCL_PIN
         int "Sensors I2C SCL pin"
         default 32
+        range 0 39
         help
             I2C SCL pin connected to I2C sensors.
 
@@ -137,7 +143,14 @@ menu "Homer1 Configuration"
         bool "Enable write to displaying esp"
         default true
         help
-            Enable facility to write the sensor read outs to a second esp32 in charge of displaying data
+            Enable facility to write the sensor read outs to a second esp32 in charge of displaying data.
+
+    config MY_WRITE_TO_DISPLAY_GPIO_INTERRUPT_PIN
+        int "Interrupt pin to write to display esp"
+        default 12
+        range 0 39
+        help
+            GPIO pin that interrupts and signals that write out to display esp should happen over i2c.
 
 endmenu
 

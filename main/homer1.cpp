@@ -855,6 +855,45 @@ void my_nvs_init() noexcept
 // GPIO & INTERRUPT
 namespace {
 
+QueueHandle_t gpio_evt_queue = nullptr;
+
+void IRAM_ATTR gpio_isr_handler(void* arg)
+{
+    xQueueSendFromISR(gpio_evt_queue, (void*) true, nullptr);
+}
+
+void my_gpio_init()
+{
+    gpio_config_t gpio = {};
+    gpio.intr_type = GPIO_INTR_HIGH_LEVEL;
+    gpio.mode = GPIO_MODE_INPUT;
+    gpio.pin_bit_mask = 1ULL << my_write_to_esp_gpio_pin();
+    gpio.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    gpio.pull_up_en = GPIO_PULLUP_ENABLE;
+    ESP_ERROR_CHECK(gpio_config(&gpio));
+
+    gpio_evt_queue = xQueueCreate(1, sizeof(bool));
+    if (!gpio_evt_queue)
+        throw std::runtime_error("could not create gpio queue");
+
+    xTaskCreate(
+            [](void* arg) {
+                bool act;
+                while (true)
+                    if (xQueueReceive(gpio_evt_queue, &act, portMAX_DELAY))
+                        std::cout << "the thing happened" << std::endl;
+            },
+            "work_gpio_interrupt",
+            1024 * 4,
+            nullptr,
+            10,
+            nullptr
+    );
+
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(my_write_to_esp_gpio_pin(), gpio_isr_handler, nullptr);
+}
+
 }
 
 
@@ -906,4 +945,6 @@ extern "C" void app_main(void)
     task_dump_sensors(sensor);
     task_push_influxdb(sensor);
     run_httpd_server(sensor);
+
+    // my_gpio_init();
 }
