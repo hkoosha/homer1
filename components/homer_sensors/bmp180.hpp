@@ -59,6 +59,7 @@ public:
 
     ~SensorData() noexcept override = default;
 
+    void serialize(Serializer& sz) const noexcept override;
 
 protected:
 

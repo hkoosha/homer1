@@ -45,8 +45,12 @@ public:
     ~SensorData() noexcept override = default;
 
 
+    void serialize(Serializer& sz) const noexcept override;
+
+
     float temperature;
     float humidity;
+
 
 protected:
     void invalidate() noexcept override;

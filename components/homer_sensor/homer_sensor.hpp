@@ -67,6 +67,8 @@ public:
 
     [[nodiscard]] const char* name() const noexcept;
 
+    virtual void serialize(Serializer& sz) const noexcept = 0;
+
 protected:
     explicit HomerSensorData(const char* name) noexcept;
 

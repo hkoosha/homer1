@@ -173,6 +173,16 @@ SensorData::SensorData() noexcept:
 {
 }
 
+void SensorData::serialize(Serializer& sz) const noexcept
+{
+    if (!this->error.is_ok())
+        return;
+
+    sz.write((uint8_t) 44)
+            ->write(this->co2)
+            ->write(this->abc_days);
+}
+
 }
 
 namespace S8 {

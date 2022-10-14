@@ -147,7 +147,7 @@ menu "Homer1 Configuration"
 
     config MY_WRITE_TO_DISPLAY_GPIO_INTERRUPT_PIN
         int "Interrupt pin to write to display esp"
-        default 12
+        default 34
         range 0 39
         help
             GPIO pin that interrupts and signals that write out to display esp should happen over i2c.

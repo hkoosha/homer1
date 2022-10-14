@@ -205,6 +205,26 @@ const char* SensorData::do_sensor_err_to_str(const uint64_t err) const noexcept
     }
 }
 
+void SensorData::serialize(Serializer& sz) const noexcept
+{
+    if (!this->error.is_ok())
+        return;
+
+    sz.write((uint8_t) 42)
+            ->write(this->pm10_standard)
+            ->write(this->pm25_standard)
+            ->write(this->pm100_standard)
+            ->write(this->pm10_env)
+            ->write(this->pm25_env)
+            ->write(this->pm100_env)
+            ->write(this->particles_03)
+            ->write(this->particles_05)
+            ->write(this->particles_10)
+            ->write(this->particles_25)
+            ->write(this->particles_50)
+            ->write(this->particles_100);
+}
+
 }
 
 namespace Pms5003 {

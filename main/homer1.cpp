@@ -3,6 +3,7 @@
 #include <cstring>
 #include <map>
 #include <vector>
+#include <deque>
 #include <algorithm>
 #include <string>
 
@@ -336,6 +337,26 @@ public:
         return ss;
     }
 
+    [[nodiscard]] std::vector<uint8_t> serialize() const noexcept
+    {
+        auto ret = std::vector<uint8_t>{};
+        ret.clear();
+        auto sz = Serializer{&ret};
+
+        this->lock();
+        if (my_is_pms5003_enabled())
+            this->data.pms5003.serialize(sz);
+        if (my_is_bmp180_enabled())
+            this->data.bmp180.serialize(sz);
+        if (my_is_s8_enabled())
+            this->data.s8.serialize(sz);
+        if (my_is_sht3x_enabled())
+            this->data.sht3x.serialize(sz);
+        this->unlock();
+
+        return ret;
+    }
+
 private:
     SensorPeripheral peripheral;
     SemaphoreHandle_t mutex;
@@ -354,7 +375,7 @@ private:
 
 Sensor* make_sensor()
 {
-    auto i2c = new i2c::Device{SENSOR_I2C_PORT};
+    auto i2c = new i2c::Device{I2C_NUM_0};
 
     auto sensor = new Sensor{
             {},
@@ -410,7 +431,7 @@ void task_read_sensors(Sensor* sensor) noexcept
     xTaskCreate(
             [](void* arg) {
                 auto* sensor0 = static_cast<Sensor*>(arg);
-                while ((my_is_bmp180_enabled() || my_is_sht3x_enabled()) && sensor0->loop) {
+                while (sensor0->loop) {
                     if (my_is_bmp180_enabled())
                         sensor0->update_bmp180();
 
@@ -433,16 +454,18 @@ void task_dump_sensors(Sensor* sensor) noexcept
     xTaskCreate(
             [](void* arg) {
                 if (my_print_delay() <= 0)
-                    return;
+                    throw std::runtime_error("invalid print delay");
 
                 my_sleep_millis(PRINT_INITIAL_DELAY);
 
                 auto* sensor0 = static_cast<Sensor*>(arg);
                 while (sensor0->loop) {
-                    std::stringstream ss;
-                    print_sensor_dump_header(ss);
-                    sensor0->dump_pretty_print(ss);
-                    std::cout << ss.str();
+                    if (my_is_any_sensor_enabled()) {
+                        std::stringstream ss;
+                        print_sensor_dump_header(ss);
+                        sensor0->dump_pretty_print(ss);
+                        std::cout << ss.str();
+                    }
 
                     my_sleep_millis((uint32_t) my_print_delay());
                 }
@@ -787,6 +810,7 @@ void my_uart_init_8n1(const uart_port_t uart_num,
     uart_config.stop_bits = UART_STOP_BITS_1;
     uart_config.flow_ctrl = UART_HW_FLOWCTRL_DISABLE;
     uart_config.rx_flow_ctrl_thresh = 122;
+    uart_config.source_clk = UART_SCLK_DEFAULT;
 
     ESP_ERROR_CHECK(uart_param_config(uart_num, &uart_config));
 
@@ -808,6 +832,7 @@ void my_uart_init_8n1(const uart_port_t uart_num,
     ));
 }
 
+// TODO move to i2c:Device
 void my_i2c_init(const i2c_port_t port,
                  const int sda_pin,
                  const int scl_pin,
@@ -818,6 +843,7 @@ void my_i2c_init(const i2c_port_t port,
     i2c_config_t i2c_conf;
     std::memset(&i2c_conf, 0, sizeof(i2c_conf));
     i2c_conf.mode = I2C_MODE_MASTER;
+    // TODO should this simply be 'true'?
     i2c_conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
     i2c_conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
     i2c_conf.sda_io_num = sda_pin;
@@ -851,41 +877,117 @@ void my_nvs_init() noexcept
 
 }
 
-
 // GPIO & INTERRUPT
 namespace {
 
+const uint32_t MY_FLAG = 42;
 QueueHandle_t gpio_evt_queue = nullptr;
+uint64_t last_send_out = 0;
 
 void IRAM_ATTR gpio_isr_handler(void* arg)
 {
-    xQueueSendFromISR(gpio_evt_queue, (void*) true, nullptr);
+    auto now = now_millis();
+    if (now - last_send_out >= 1000) {
+        last_send_out = now;
+        xQueueSendFromISR(gpio_evt_queue, (void*) &MY_FLAG, nullptr);
+    }
 }
 
-void my_gpio_init()
+std::vector<uint8_t> get_no_data()
+{
+    auto no_data = std::vector<uint8_t>{};
+
+    // data len, uint16_t
+    no_data.push_back((uint8_t) 0);
+    no_data.push_back((uint8_t) 0);
+
+    auto no_data_crc = modbus_crc(no_data.data(), no_data.size());
+    no_data.push_back((uint8_t) ((no_data_crc >> 8) & 0xFF));
+    no_data.push_back((uint8_t) (no_data_crc & 0xFF));
+
+    // preamble
+    no_data.insert(no_data.begin(), (uint8_t) 'n');
+    no_data.insert(no_data.begin(), (uint8_t) 'a');
+    no_data.insert(no_data.begin(), (uint8_t) 'r');
+    no_data.insert(no_data.begin(), (uint8_t) 'k');
+    no_data.insert(no_data.begin(), (uint8_t) 'e');
+
+    // ending
+    no_data.push_back((uint8_t) 'n');
+    no_data.push_back((uint8_t) 'a');
+    no_data.push_back((uint8_t) 'r');
+    no_data.push_back((uint8_t) 'k');
+    no_data.push_back((uint8_t) 'e');
+
+    return no_data;
+}
+
+void my_gpio_init(const Sensor* const sensor)
 {
     gpio_config_t gpio = {};
     gpio.intr_type = GPIO_INTR_HIGH_LEVEL;
     gpio.mode = GPIO_MODE_INPUT;
     gpio.pin_bit_mask = 1ULL << my_write_to_esp_gpio_pin();
-    gpio.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    gpio.pull_up_en = GPIO_PULLUP_ENABLE;
+    gpio.pull_down_en = GPIO_PULLDOWN_ENABLE;
+    gpio.pull_up_en = GPIO_PULLUP_DISABLE;
     ESP_ERROR_CHECK(gpio_config(&gpio));
 
-    gpio_evt_queue = xQueueCreate(1, sizeof(bool));
+    gpio_evt_queue = xQueueCreate(1, sizeof(int32_t));
     if (!gpio_evt_queue)
         throw std::runtime_error("could not create gpio queue");
 
+    // TODO move to i2c::Device.
+    my_i2c_init(
+            I2C_NUM_1,
+            25,
+            26,
+            MY_I2C_CLOCK_SPEED
+    );
+
     xTaskCreate(
             [](void* arg) {
-                bool act;
-                while (true)
-                    if (xQueueReceive(gpio_evt_queue, &act, portMAX_DELAY))
-                        std::cout << "the thing happened" << std::endl;
+
+                const auto* sensor0 = static_cast<const Sensor*>(arg);
+
+                auto i2c = i2c::Device{I2C_NUM_1};
+                i2c.set_delay(1000 / portTICK_PERIOD_MS);
+
+                uint32_t dummy;
+                while (sensor0->loop)
+                    if (xQueueReceive(gpio_evt_queue, &dummy, portMAX_DELAY)) {
+
+                        auto data = sensor0->serialize();
+
+                        auto raw_size = (uint16_t) data.size();
+                        data.insert(data.begin(), (uint8_t) (raw_size & 0xFF));
+                        data.insert(data.begin(), (uint8_t) ((raw_size >> 8) & 0xFF));
+
+                        auto crc = modbus_crc(data.data(), data.size());
+                        data.push_back((uint8_t) ((crc >> 8) & 0xFF));
+                        data.push_back((uint8_t) (crc & 0xFF));
+
+                        data.insert(data.begin(), 'n');
+                        data.insert(data.begin(), 'a');
+                        data.insert(data.begin(), 'r');
+                        data.insert(data.begin(), 'k');
+                        data.insert(data.begin(), 'e');
+                        data.push_back('n');
+                        data.push_back('a');
+                        data.push_back('r');
+                        data.push_back('k');
+                        data.push_back('e');
+
+                        auto err = i2c.write_to_slave(0x42, data.data(), data.size());
+
+                        if (err.is_ok())
+                            ESP_LOGI(MY_TAG, "the thing happened");
+                        else
+                            ESP_LOGE(MY_TAG, "the thing happened with error!!!");
+                    }
             },
             "work_gpio_interrupt",
             1024 * 4,
-            nullptr,
+            (void*) sensor,
             10,
             nullptr
     );
@@ -929,7 +1031,7 @@ extern "C" void app_main(void)
 
     if (my_needs_sensor_i2c())
         my_i2c_init(
-                SENSOR_I2C_PORT,
+                I2C_NUM_0,
                 my_sensors_i2c_sda_pin(),
                 my_sensors_i2c_scl_pin(),
                 MY_I2C_CLOCK_SPEED
@@ -946,5 +1048,5 @@ extern "C" void app_main(void)
     task_push_influxdb(sensor);
     run_httpd_server(sensor);
 
-    // my_gpio_init();
+    my_gpio_init(sensor);
 }

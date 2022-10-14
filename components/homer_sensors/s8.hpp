@@ -59,6 +59,9 @@ public:
     ~SensorData() noexcept override = default;
 
 
+    void serialize(Serializer& sz) const noexcept override;
+
+
     int16_t co2;
     int16_t abc_days;
     int32_t sensor_id;

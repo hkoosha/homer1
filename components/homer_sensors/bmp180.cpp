@@ -141,6 +141,16 @@ const char* SensorData::do_sensor_err_to_str(const uint64_t err) const noexcept
     return bmp180_err_to_string(err);
 }
 
+void SensorData::serialize(Serializer& sz) const noexcept
+{
+    if (!this->error.is_ok())
+        return;
+
+    sz.write((uint8_t) 43)
+            ->write(this->temperature)
+            ->write(this->pressure);
+}
+
 }
 
 // Sensor

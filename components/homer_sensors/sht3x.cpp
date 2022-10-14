@@ -122,17 +122,27 @@ const char* SensorData::do_sensor_err_to_str(const uint64_t err) const noexcept
     }
 }
 
+void SensorData::serialize(Serializer& sz) const noexcept
+{
+    if (!this->error.is_ok())
+        return;
+
+    sz.write((uint8_t) 45)
+            ->write(this->temperature)
+            ->write(this->humidity);
+}
+
 }
 
 // Sensor
 namespace Sht3x {
 
-Sensor::Sensor(i2c::Device* i2c):
+Sensor::Sensor(i2c::Device* i2c) :
         HomerSensor<SensorData>(MEASUREMENT_GAP_MILLIS),
         i2c{i2c},
         data{}
 {
-    if(!this->i2c)
+    if (!this->i2c)
         throw std::runtime_error("i2c is null");
 }
 

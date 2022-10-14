@@ -54,6 +54,9 @@ public:
 
     ~SensorData() noexcept override = default;
 
+    void serialize(Serializer& sz) const noexcept override;
+
+public:
 
     uint16_t pm10_standard;
     uint16_t pm25_standard;

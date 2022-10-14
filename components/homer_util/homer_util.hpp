@@ -5,12 +5,15 @@
 #include <ctime>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_timer.h"
 
 using std::size_t;
+using std::uint8_t;
+using std::uint16_t;
 using std::uint32_t;
 using std::uint64_t;
 
@@ -29,7 +32,7 @@ const char* err_to_string(uint64_t err) noexcept;
 namespace homer1 {
 
 uint16_t modbus_crc(const uint8_t* buf,
-                    const size_t len) noexcept;
+                    size_t len) noexcept;
 
 }
 
@@ -140,6 +143,74 @@ private:
     uint64_t _sensor_err;
     esp_err_t _hardware_err;
 
+};
+
+}
+
+// Serializer
+namespace homer1 {
+
+class Serializer
+{
+public:
+
+    explicit Serializer(std::vector<uint8_t>* buffer) noexcept: data{buffer}
+    {
+    }
+
+    Serializer& operator=(const Serializer& other) = delete;
+
+    Serializer& operator=(Serializer&& other) = delete;
+
+    Serializer(const Serializer& other) = default;
+
+    Serializer(Serializer&& other) = delete;
+
+
+    Serializer* write(const uint8_t value)
+    {
+        this->data->push_back(value);
+        return this;
+    }
+
+    Serializer* write(const uint16_t value)
+    {
+        const auto* as_bytes = reinterpret_cast<const uint8_t*>(&value);
+        return this
+                ->write(as_bytes[0])
+                ->write(as_bytes[1]);
+    }
+
+    Serializer* write(const uint32_t value)
+    {
+        const auto* as_bytes = reinterpret_cast<const uint8_t*>(&value);
+        return this
+                ->write(as_bytes[0])
+                ->write(as_bytes[1])
+                ->write(as_bytes[2])
+                ->write(as_bytes[3]);
+    }
+
+    Serializer* write(const float value)
+    {
+        const auto* as_bytes = reinterpret_cast<const uint8_t*>(&value);
+        return this
+                ->write(as_bytes[0])
+                ->write(as_bytes[1])
+                ->write(as_bytes[2])
+                ->write(as_bytes[3]);
+    }
+
+    Serializer* write(const int16_t value)
+    {
+        const auto* as_bytes = reinterpret_cast<const uint8_t*>(&value);
+        return this
+                ->write(as_bytes[0])
+                ->write(as_bytes[1]);
+    }
+
+
+    std::vector<uint8_t>* data = nullptr;
 };
 
 }
