@@ -1,13 +1,29 @@
-#include <Arduino.h>
-#include <Wire.h>
+// Works with a waveshare e-ink paper display 7.5 inch V2.
+
+#define MY_DISPLAY true
+
+
+#ifdef MY_DISPLAY
+#include "DEV_Config.h"
+#include "EPD.h"
+#include "GUI_Paint.h"
+#endif
+
+
+#include <cstdlib>
 #include <vector>
-#include <cstring>
-#include <string>
+
+#include <Wire.h>
+
+
 
 
 namespace homer1 {
 
+const int LOOP_DELAY_MILLIS = 60000;
+
 const int MY_SIGNAL_PIN = 19;
+const uint8_t MY_I2C_ADDR = 0x42;
 
 std::vector<uint8_t> my_data{};
 size_t j = 0;
@@ -38,14 +54,14 @@ uint16_t s8_days = 0;
 
 bool check_frame() {
   if (my_data.size() >= 1024) {
-    Serial.println("too much data");
+    printf("too much data\r\n");
     my_data.clear();
     return false;
   }
 
   // preamble: 5, ending: 5, len: 2, crc: 2 bytes.
   if (my_data.size() < 14) {
-    Serial.println("not enough data");
+    printf("not enough data\r\n");
     return false;
   }
 
@@ -61,7 +77,7 @@ bool check_frame() {
             && my_data[my_data.size() - 5] == 'n';
 
   if (!ok) {
-    Serial.println("bad data");
+    printf("bad data\r\n");
     my_data.clear();
   }
 
@@ -69,59 +85,28 @@ bool check_frame() {
 }
 
 void log() {
-  Serial.println();
-  Serial.println("===========================================================");
-  Serial.printf("sht3x_temperature: %f", sht3x_temperature);
-  Serial.println();
-  Serial.printf("sht3x_humidity: %f", sht3x_humidity);
-  Serial.println();
+  printf("===========================================================\r\n");
+  printf("sht3x_temperature: %f\r\n", sht3x_temperature);
+  printf("sht3x_humidity: %f\r\n", sht3x_humidity);
 
-  Serial.printf("bmp180_temperature: %f", bmp180_temperature);
-  Serial.println();
-  Serial.printf("bmp180_pressure: %u", bmp180_pressure);
-  Serial.println();
+  printf("bmp180_temperature: %f\r\n", bmp180_temperature);
+  printf("bmp180_pressure: %u\r\n", bmp180_pressure);
 
-  Serial.printf("s8_co2: %hu", s8_co2);
-  Serial.println();
-  Serial.printf("s8_days: %hu", s8_days);
-  Serial.println();
+  printf("s8_co2: %hu\r\n", s8_co2);
+  printf("s8_days: %hu\r\n", s8_days);
 
-  Serial.printf("pms5003_pm10_standard: %hu", pms5003_pm10_standard);
-  Serial.println();
-  Serial.printf("pms5003_pm25_standard: %hu", pms5003_pm25_standard);
-  Serial.println();
-  Serial.printf("pms5003_pm100_standard: %hu", pms5003_pm100_standard);
-  Serial.println();
-  Serial.printf("pms5003_pm10_env: %hu", pms5003_pm10_env);
-  Serial.println();
-  Serial.printf("pms5003_pm25_env: %hu", pms5003_pm25_env);
-  Serial.println();
-  Serial.printf("pms5003_pm100_env: %hu", pms5003_pm100_env);
-  Serial.println();
-  Serial.printf("pms5003_pm03_particles: %hu", pms5003_pm03_particles);
-  Serial.println();
-  Serial.printf("pms5003_pm05_particles: %hu", pms5003_pm05_particles);
-  Serial.println();
-  Serial.printf("pms5003_pm10_particles: %hu", pms5003_pm10_particles);
-  Serial.println();
-  Serial.printf("pms5003_pm25_particles: %hu", pms5003_pm25_particles);
-  Serial.println();
-  Serial.printf("pms5003_pm50_particles: %hu", pms5003_pm50_particles);
-  Serial.println();
-  Serial.printf("pms5003_pm100_particles: %hu", pms5003_pm100_particles);
-  Serial.println();
-}
-
-void dump() {
-  size_t xxx = 0;
-  for (auto ddd : my_data) {
-    Serial.print("d");
-    if (xxx < 10)
-      Serial.print("0");
-    Serial.print(xxx++);
-    Serial.print("= ");
-    Serial.println(ddd);
-  }
+  printf("pms5003_pm10_standard: %hu\r\n", pms5003_pm10_standard);
+  printf("pms5003_pm25_standard: %hu\r\n", pms5003_pm25_standard);
+  printf("pms5003_pm100_standard: %hu\r\n", pms5003_pm100_standard);
+  printf("pms5003_pm10_env: %hu\r\n", pms5003_pm10_env);
+  printf("pms5003_pm25_env: %hu\r\n", pms5003_pm25_env);
+  printf("pms5003_pm100_env: %hu\r\n", pms5003_pm100_env);
+  printf("pms5003_pm03_particles: %hu\r\n", pms5003_pm03_particles);
+  printf("pms5003_pm05_particles: %hu\r\n", pms5003_pm05_particles);
+  printf("pms5003_pm10_particles: %hu\r\n", pms5003_pm10_particles);
+  printf("pms5003_pm25_particles: %hu\r\n", pms5003_pm25_particles);
+  printf("pms5003_pm50_particles: %hu\r\n", pms5003_pm50_particles);
+  printf("pms5003_pm100_particles: %hu\r\n", pms5003_pm100_particles);
 }
 
 float read_float() {
@@ -155,23 +140,24 @@ uint32_t read_uint32() {
   return *read_back0;
 }
 
-void act() {
+void process_data() {
   if (!check_frame())
     return;
 
   auto len = (my_data[5] << 8) | my_data[6];
   if (len == 0) {
-    Serial.println("no sensor data");
+    printf("no sensor data\r\n");
     my_data.clear();
     return;
   }
+  printf("got data\r\n");
 
   j = 7;
   while (j < (7 + len)) {
     switch (my_data[j]) {
       case 42:
         {
-          Serial.println("reading pms5003");
+          printf("reading pms5003\r\n");
           j++;
           pms5003_pm10_standard = read_uint16();
           pms5003_pm25_standard = read_uint16();
@@ -192,7 +178,7 @@ void act() {
 
       case 43:
         {
-          Serial.println("reading bmp180");
+          printf("reading bmp180\r\n");
           j++;
           bmp180_temperature = read_float();
           bmp180_pressure = read_uint32();
@@ -201,7 +187,7 @@ void act() {
 
       case 44:
         {
-          Serial.println("reading s8");
+          printf("reading s8\r\n");
           j++;
           s8_co2 = read_uint16();
           s8_days = read_uint16();
@@ -210,7 +196,7 @@ void act() {
 
       case 45:
         {
-          Serial.println("reading sht3x");
+          printf("reading sht3x\r\n");
           j++;
           sht3x_temperature = read_float();
           sht3x_humidity = read_float();
@@ -218,10 +204,7 @@ void act() {
         break;
 
       default:
-        Serial.print("unknown sensor, can not continue! sensor_id: ");
-        Serial.print(my_data[j]);
-        Serial.print(" at index: ");
-        Serial.println(j);
+        printf("unknown sensor, can not continue! sensor_id: %d at index: %d", my_data[j], j);
         my_data.clear();
         return;
     }
@@ -230,45 +213,213 @@ void act() {
   my_data.clear();
 }
 
-void onRequest() {
+void on_request() {
   Wire.print(42);
-  Serial.println("onRequest!!");
+  printf("onRequest!!\r\n");
 }
 
-void onReceive(int len) {
+void my_draw();
+
+void on_receive(int len) {
   my_flag = false;
   digitalWrite(MY_SIGNAL_PIN, LOW);
 
   while (Wire.available())
     my_data.push_back((uint8_t)Wire.read());
 
-  act();
+  process_data();
+  log();
+  my_draw();
 
   my_flag = true;
 }
 
 void signal() {
+
+  if (!my_flag)
+    return;
+
   digitalWrite(MY_SIGNAL_PIN, HIGH);
   delay(5);
   digitalWrite(MY_SIGNAL_PIN, LOW);
 }
 
+
+
+#ifdef MY_DISPLAY
+uint8_t* black_image;
+char* print_buffer;
+const size_t print_buffer_len = 1024;
+#endif
+
+size_t my_write_int32(char* my, int32_t n) {
+  itoa(n, my, 10);
+  return strlen(my);
 }
+
+void my_write_float(char* my, float f) {
+  auto r = (int32_t)f;
+  auto d = (int32_t)((f - r) * 100);
+
+  size_t at = my_write_int32(my, r);
+  my[at] = '.';
+  my_write_int32(my + at + 1, d);
+}
+
+size_t reset_print_buffer(const char* label) {
+#ifdef MY_DISPLAY
+  memset(print_buffer, 0, print_buffer_len);
+  strcpy(print_buffer, label);
+#endif
+  return strlen(label);
+}
+
+void my_draw() {
+
+#ifdef MY_DISPLAY
+
+  EPD_7IN5_V2_Init();
+  Paint_NewImage(black_image, EPD_7IN5_V2_WIDTH, EPD_7IN5_V2_HEIGHT, 0, WHITE);
+  Paint_SelectImage(black_image);
+  Paint_Clear(WHITE);
+
+  size_t at = 0;
+  uint16_t base = 0;
+  uint16_t root = 0;
+
+  base = 10;
+  root = 10;
+  at = reset_print_buffer("Humidity: ");
+  my_write_float(print_buffer + at, homer1::sht3x_humidity);
+  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+
+  base += 20;
+  at = reset_print_buffer("Temp: ");
+  my_write_float(print_buffer + at, homer1::sht3x_temperature);
+  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+
+  base += 20;
+  at = reset_print_buffer("Pressure: ");
+  my_write_int32(print_buffer + at, homer1::bmp180_pressure);
+  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+
+  base += 20;
+  at = reset_print_buffer("CO2: ");
+  my_write_int32(print_buffer + at, homer1::s8_co2);
+  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+
+  root = 200;
+
+  base = 10;
+  at = reset_print_buffer("PM10 - ENV:  ");
+  my_write_int32(print_buffer + at, homer1::pms5003_pm10_env);
+  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+
+  base += 20;
+  at = reset_print_buffer("PM25 - ENV:  ");
+  my_write_int32(print_buffer + at, homer1::pms5003_pm25_env);
+  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+
+  base += 20;
+  at = reset_print_buffer("PM100 - ENV: ");
+  my_write_int32(print_buffer + at, homer1::pms5003_pm100_env);
+  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+
+  root = 400;
+
+  base = 10;
+  at = reset_print_buffer("PM10 - STD:  ");
+  my_write_int32(print_buffer + at, homer1::pms5003_pm10_standard);
+  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+
+  base += 20;
+  at = reset_print_buffer("PM25 - STD:  ");
+  my_write_int32(print_buffer + at, homer1::pms5003_pm25_standard);
+  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+
+  base += 20;
+  at = reset_print_buffer("PM100 - STD: ");
+  my_write_int32(print_buffer + at, homer1::pms5003_pm100_standard);
+  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+
+  root = 600;
+
+  base = 10;
+  at = reset_print_buffer("PM03 - PTC:  ");
+  my_write_int32(print_buffer + at, homer1::pms5003_pm03_particles);
+  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+
+  base += 20;
+  at = reset_print_buffer("PM05 - PTC:  ");
+  my_write_int32(print_buffer + at, homer1::pms5003_pm05_particles);
+  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+
+  base += 20;
+  at = reset_print_buffer("PM10 - PTC:  ");
+  my_write_int32(print_buffer + at, homer1::pms5003_pm10_particles);
+  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+
+  base += 20;
+  at = reset_print_buffer("PM25 - PTC:  ");
+  my_write_int32(print_buffer + at, homer1::pms5003_pm25_particles);
+  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+
+  base += 20;
+  at = reset_print_buffer("PM50 - PTC:  ");
+  my_write_int32(print_buffer + at, homer1::pms5003_pm50_particles);
+  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+
+  base += 20;
+  at = reset_print_buffer("PM100 - PTC: ");
+  my_write_int32(print_buffer + at, homer1::pms5003_pm100_particles);
+  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+
+  EPD_7IN5_V2_Display(black_image);
+  DEV_Delay_ms(2000);
+  printf("display sleep\r\n");
+  EPD_7IN5_V2_Sleep();
+
+#endif
+}
+
+}
+
+
 
 void setup() {
-  Serial.begin(115200);
+  printf("setup...\r\n");
+
+#ifdef MY_DISPLAY
+
+  printf("init display\r\n");
+  DEV_Module_Init();
+  EPD_7IN5_V2_Init();
+
+  printf("clearing display\r\n");
+  EPD_7IN5_V2_Clear();
+  delay(500);
+
+  auto w = EPD_7IN5_V2_WIDTH;
+  auto h = EPD_7IN5_V2_HEIGHT;
+  uint16_t image_size = ((w % 8 == 0) ? (w / 8) : (w / 8 + 1)) * h;
+  homer1::black_image = new uint8_t[image_size];
+  if (!homer1::black_image)
+    throw std::runtime_error("failed to allocate black memory");
+
+  homer1::print_buffer = new char[homer1::print_buffer_len];
+  if (!homer1::print_buffer)
+    throw std::runtime_error("failed to allocate print buffer");
+
+#endif
+
   pinMode(homer1::MY_SIGNAL_PIN, OUTPUT);
-  Wire.onReceive(homer1::onReceive);
-  Wire.onRequest(homer1::onRequest);
-  Wire.begin((uint8_t)0x42);
+  Wire.onReceive(homer1::on_receive);
+  Wire.onRequest(homer1::on_request);
+  Wire.begin(homer1::MY_I2C_ADDR);
 }
 
-
 void loop() {
-  if (homer1::my_flag)
-    homer1::signal();
-
-  delay(3000);
-
-  homer1::log();
+  printf("looper\r\n");
+  homer1::signal();
+  delay(homer1::LOOP_DELAY_MILLIS);
 }
