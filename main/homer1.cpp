@@ -26,6 +26,7 @@
 #include "pms5003.hpp"
 #include "bmp180.hpp"
 #include "sht3x.hpp"
+#include "sgp30.hpp"
 
 #include "homer1.hpp"
 #include "homer_util.hpp"
@@ -51,7 +52,7 @@ public:
     Bmp180::SensorData bmp180{};
     S8::SensorData s8{};
     Sht3x::SensorData sht3x{};
-
+    Sgp30::SensorData sgp30{};
 
     SensorData& operator=(const SensorData& other) = delete;
 
@@ -64,7 +65,8 @@ public:
             pms5003{std::move(other.pms5003)},
             bmp180{std::move(other.bmp180)},
             s8{std::move(other.s8)},
-            sht3x{std::move(other.sht3x)}
+            sht3x{std::move(other.sht3x)},
+            sgp30{std::move(other.sgp30)}
     {
     }
 
@@ -79,6 +81,7 @@ public:
     Pms5003::Sensor* pms5003;
     Bmp180::Sensor* bmp180;
     Sht3x::Sensor* sht3x;
+    Sgp30::Sensor* sgp30;
 
 
     SensorPeripheral& operator=(const SensorPeripheral& other) = delete;
@@ -94,21 +97,25 @@ public:
         this->pms5003 = other.pms5003;
         this->bmp180 = other.bmp180;
         this->sht3x = other.sht3x;
+        this->sgp30 = other.sgp30;
 
         other.s8 = nullptr;
         other.pms5003 = nullptr;
         other.bmp180 = nullptr;
         other.sht3x = nullptr;
+        other.sgp30 = nullptr;
     }
 
     SensorPeripheral(S8::Sensor* s8,
                      Pms5003::Sensor* pms5003,
                      Bmp180::Sensor* bmp180,
-                     Sht3x::Sensor* sht3x) :
+                     Sht3x::Sensor* sht3x,
+                     Sgp30::Sensor* sgp30) :
             s8{s8},
             pms5003{pms5003},
             bmp180{bmp180},
-            sht3x{sht3x}
+            sht3x{sht3x},
+            sgp30{sgp30}
     {
         if (!this->s8)
             throw std::runtime_error("s8 is null");
@@ -118,6 +125,8 @@ public:
             throw std::runtime_error("bmp180 is null");
         if (!this->sht3x)
             throw std::runtime_error("sht3x is null");
+        if (!this->sgp30)
+            throw std::runtime_error("sgp30 is null");
     }
 
     ~SensorPeripheral()
@@ -126,11 +135,13 @@ public:
         delete this->pms5003;
         delete this->bmp180;
         delete this->sht3x;
+        delete this->sgp30;
 
         this->s8 = nullptr;
         this->pms5003 = nullptr;
         this->bmp180 = nullptr;
         this->sht3x = nullptr;
+        this->sgp30 = nullptr;
     }
 };
 
@@ -172,10 +183,10 @@ public:
     {
         assert(my_is_s8_enabled());
 
-        const auto& new_data = this->peripheral.s8->read_data();
+        S8::SensorData new_data = this->peripheral.s8->read_data();
 
         this->lock();
-        this->data.s8 = new_data;
+        this->data.s8 = std::move(new_data);
         this->unlock();
     }
 
@@ -183,10 +194,10 @@ public:
     {
         assert(my_is_sht3x_enabled());
 
-        const auto new_data = this->peripheral.sht3x->read_data();
+        Sht3x::SensorData new_data = this->peripheral.sht3x->read_data();
 
         this->lock();
-        this->data.sht3x = new_data;
+        this->data.sht3x = std::move(new_data);
         this->unlock();
     }
 
@@ -194,10 +205,10 @@ public:
     {
         assert(my_is_pms5003_enabled());
 
-        const auto new_data = this->peripheral.pms5003->read_data();
+        Pms5003::SensorData new_data = this->peripheral.pms5003->read_data();
 
         this->lock();
-        this->data.pms5003 = new_data;
+        this->data.pms5003 = std::move(new_data);
         this->unlock();
     }
 
@@ -210,7 +221,20 @@ public:
             new_data = this->peripheral.bmp180->read_data();
 
         this->lock();
-        this->data.bmp180 = new_data;
+        this->data.bmp180 = std::move(new_data);
+        this->unlock();
+    }
+
+    void update_sgp30() noexcept
+    {
+        assert(my_is_sgp30_enabled());
+
+        Sgp30::SensorData new_data{};
+        if (this->peripheral.sgp30->is_initialized() || this->peripheral.sgp30->init().is_ok())
+            new_data = this->peripheral.sgp30->read_data();
+
+        this->lock();
+        this->data.sgp30 = std::move(new_data);
         this->unlock();
     }
 
@@ -259,6 +283,16 @@ public:
                 ss << "SN: " << this->data.sht3x.sensor_err_to_str() << std::endl;
             }
         }
+        if (my_is_sgp30_enabled()) {
+            ss << std::endl << "[SGP30]" << std::endl;
+            if (this->data.sgp30.get_error().is_ok()) {
+                this->data.sgp30.dump(ss);
+            }
+            else {
+                ss << "HW: " << this->data.sgp30.hw_err_to_str() << std::endl;
+                ss << "SN: " << this->data.sgp30.sensor_err_to_str() << std::endl;
+            }
+        }
 
         this->unlock();
     }
@@ -291,6 +325,12 @@ public:
             for (const auto& item: sht3x_dump)
                 ss << item.first << "=" << item.second << std::endl;
         }
+        if (my_is_sgp30_enabled()) {
+            ss << "[SGP30]" << std::endl;
+            const HomerSensorDumpMap sgp30_dump = this->data.sgp30.dump();
+            for (const auto& item: sgp30_dump)
+                ss << item.first << "=" << item.second << std::endl;
+        }
 
         this->unlock();
     }
@@ -308,6 +348,8 @@ public:
             this->data.s8.influxdb(measurements);
         if (my_is_sht3x_enabled())
             this->data.sht3x.influxdb(measurements);
+        if (my_is_sgp30_enabled())
+            this->data.sgp30.influxdb(measurements);
         this->unlock();
 
         // Not needed for InfluxDB but makes cURLing it user-friendly.
@@ -331,6 +373,8 @@ public:
             this->data.s8.prometheus(ss);
         if (my_is_sht3x_enabled())
             this->data.sht3x.prometheus(ss);
+        if (my_is_sgp30_enabled())
+            this->data.sgp30.prometheus(ss);
 
         this->unlock();
 
@@ -352,6 +396,8 @@ public:
             this->data.s8.serialize(sz);
         if (my_is_sht3x_enabled())
             this->data.sht3x.serialize(sz);
+        if (my_is_sgp30_enabled())
+            this->data.sgp30.serialize(sz);
         this->unlock();
 
         return ret;
@@ -384,6 +430,7 @@ Sensor* make_sensor()
                     new Pms5003::Sensor{PMS5003_UART_PORT},
                     new Bmp180::Sensor{i2c},
                     new Sht3x::Sensor{i2c},
+                    new Sgp30::Sensor{i2c}
             }
     };
     sensor->i2c_devices.push_back(i2c);
@@ -437,6 +484,9 @@ void task_read_sensors(Sensor* sensor) noexcept
 
                     if (my_is_sht3x_enabled())
                         sensor0->update_sht3x();
+
+                    if (my_is_sgp30_enabled())
+                        sensor0->update_sgp30();
 
                     my_sleep_millis(my_measurement_delay_millis());
                 }
@@ -893,35 +943,6 @@ void IRAM_ATTR gpio_isr_handler(void* arg)
     }
 }
 
-std::vector<uint8_t> get_no_data()
-{
-    auto no_data = std::vector<uint8_t>{};
-
-    // data len, uint16_t
-    no_data.push_back((uint8_t) 0);
-    no_data.push_back((uint8_t) 0);
-
-    auto no_data_crc = modbus_crc(no_data.data(), no_data.size());
-    no_data.push_back((uint8_t) ((no_data_crc >> 8) & 0xFF));
-    no_data.push_back((uint8_t) (no_data_crc & 0xFF));
-
-    // preamble
-    no_data.insert(no_data.begin(), (uint8_t) 'n');
-    no_data.insert(no_data.begin(), (uint8_t) 'a');
-    no_data.insert(no_data.begin(), (uint8_t) 'r');
-    no_data.insert(no_data.begin(), (uint8_t) 'k');
-    no_data.insert(no_data.begin(), (uint8_t) 'e');
-
-    // ending
-    no_data.push_back((uint8_t) 'n');
-    no_data.push_back((uint8_t) 'a');
-    no_data.push_back((uint8_t) 'r');
-    no_data.push_back((uint8_t) 'k');
-    no_data.push_back((uint8_t) 'e');
-
-    return no_data;
-}
-
 void my_gpio_init(const Sensor* const sensor)
 {
     gpio_config_t gpio = {};
@@ -1037,7 +1058,7 @@ extern "C" void app_main(void)
                 MY_I2C_CLOCK_SPEED
         );
     else
-        ESP_LOGW(MY_TAG, "bmp180 disabled");
+        ESP_LOGW(MY_TAG, "i2c disabled");
 
     ESP_LOGI(MY_TAG, "making sensors...");
     auto sensor = make_sensor();

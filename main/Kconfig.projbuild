@@ -85,6 +85,12 @@ menu "Homer1 Configuration"
         help
             Whether if PMS5003 sensor is enabled or not.
 
+    config MY_SENSOR_ENABLED_SGP30
+        bool "SGP30 enabled"
+        default y
+        help
+            Whether if SGP30 sensor is enabled or not.
+
     config MY_PMS5003_TX_PIN
         int "PMS5003 UART TX pin"
         default 25

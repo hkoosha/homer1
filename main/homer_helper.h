@@ -108,19 +108,32 @@ inline bool my_is_bmp180_enabled()
 #endif
 }
 
+inline bool my_is_sgp30_enabled()
+{
+#ifdef CONFIG_MY_SENSOR_ENABLED_SGP30
+    return CONFIG_MY_SENSOR_ENABLED_SGP30;
+#else
+    return false;
+#endif
+}
+
+
 inline bool my_is_any_sensor_enabled()
 {
     return my_is_pms5003_enabled()
            || my_is_sht3x_enabled()
            || my_is_s8_enabled()
-           || my_is_bmp180_enabled();
+           || my_is_bmp180_enabled()
+           || my_is_sgp30_enabled();
 }
 
 // ============================================================================
 
 inline bool my_needs_sensor_i2c()
 {
-    return my_is_bmp180_enabled() || my_is_sht3x_enabled();
+    return my_is_bmp180_enabled()
+           || my_is_sht3x_enabled()
+           || my_is_sgp30_enabled();
 }
 
 inline uint32_t my_measurement_delay_millis()

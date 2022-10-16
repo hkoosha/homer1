@@ -62,11 +62,6 @@ public:
                                         uint8_t* data,
                                         size_t size) const;
 
-    [[nodiscard]] HwErr read_from_slave(uint8_t addr,
-                                        uint8_t reg,
-                                        uint8_t* data,
-                                        size_t size) const;
-
 
     [[nodiscard]] HwErr write(uint8_t addr,
                               uint8_t,
