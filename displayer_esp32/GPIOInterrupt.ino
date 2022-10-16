@@ -1,5 +1,3 @@
-// Works with a waveshare e-ink paper display 7.5 inch V2.
-
 #define MY_DISPLAY true
 
 
@@ -29,6 +27,14 @@ std::vector<uint8_t> my_data{};
 size_t j = 0;
 
 volatile bool my_flag = true;
+
+volatile bool connection = false;
+
+uint16_t sgp30_tvoc = 0;
+uint16_t sgp30_eco2 = 0;
+uint16_t sgp30_raw_h2 = 0;
+uint16_t sgp30_raw_ethanol = 0;
+
 
 float sht3x_temperature = 0;
 float sht3x_humidity = 0;
@@ -89,6 +95,11 @@ void log() {
   printf("sht3x_temperature: %f\r\n", sht3x_temperature);
   printf("sht3x_humidity: %f\r\n", sht3x_humidity);
 
+  printf("sgp30_tvoc: %f\r\n", sgp30_tvoc);
+  printf("sgp30_eco2: %f\r\n", sgp30_eco2);
+  printf("sgp30_raw_h2: %f\r\n", sgp30_raw_h2);
+  printf("sgp30_raw_ethanol: %f\r\n", sgp30_raw_ethanol);
+
   printf("bmp180_temperature: %f\r\n", bmp180_temperature);
   printf("bmp180_pressure: %u\r\n", bmp180_pressure);
 
@@ -141,6 +152,8 @@ uint32_t read_uint32() {
 }
 
 void process_data() {
+  connection = true;
+
   if (!check_frame())
     return;
 
@@ -150,14 +163,14 @@ void process_data() {
     my_data.clear();
     return;
   }
-  printf("got data\r\n");
+  printf("got sensor data\r\n");
 
   j = 7;
   while (j < (7 + len)) {
     switch (my_data[j]) {
       case 42:
         {
-          printf("reading pms5003\r\n");
+          // printf("reading pms5003\r\n");
           j++;
           pms5003_pm10_standard = read_uint16();
           pms5003_pm25_standard = read_uint16();
@@ -178,7 +191,7 @@ void process_data() {
 
       case 43:
         {
-          printf("reading bmp180\r\n");
+          // printf("reading bmp180\r\n");
           j++;
           bmp180_temperature = read_float();
           bmp180_pressure = read_uint32();
@@ -187,7 +200,7 @@ void process_data() {
 
       case 44:
         {
-          printf("reading s8\r\n");
+          // printf("reading s8\r\n");
           j++;
           s8_co2 = read_uint16();
           s8_days = read_uint16();
@@ -196,10 +209,21 @@ void process_data() {
 
       case 45:
         {
-          printf("reading sht3x\r\n");
+          // printf("reading sht3x\r\n");
           j++;
           sht3x_temperature = read_float();
           sht3x_humidity = read_float();
+        }
+        break;
+
+      case 46:
+        {
+          // printf("reading sgp30\r\n");
+          j++;
+          sgp30_tvoc = read_uint16();
+          sgp30_eco2 = read_uint16();
+          sgp30_raw_h2 = read_uint16();
+          sgp30_raw_ethanol = read_uint16();
         }
         break;
 
@@ -252,8 +276,27 @@ char* print_buffer;
 const size_t print_buffer_len = 1024;
 #endif
 
+void my_init_and_clear() {
+  EPD_7IN5_V2_Init();
+  Paint_NewImage(black_image, EPD_7IN5_V2_WIDTH, EPD_7IN5_V2_HEIGHT, 0, WHITE);
+  Paint_SelectImage(black_image);
+  Paint_Clear(WHITE);
+}
+
+void my_flush_and_sleep() {
+  EPD_7IN5_V2_Display(black_image);
+  DEV_Delay_ms(2000);
+  printf("display sleep\r\n");
+  EPD_7IN5_V2_Sleep();
+}
+
 size_t my_write_int32(char* my, int32_t n) {
   itoa(n, my, 10);
+  return strlen(my);
+}
+
+size_t my_write_uint32(char* my, uint32_t n) {
+  utoa(n, my, 10);
   return strlen(my);
 }
 
@@ -274,110 +317,114 @@ size_t reset_print_buffer(const char* label) {
   return strlen(label);
 }
 
-void my_draw() {
-
+void print_single_msg(const char* msg) {
 #ifdef MY_DISPLAY
+  my_init_and_clear();
+  reset_print_buffer(msg);
+  Paint_DrawString_EN(10, 10, print_buffer, &Font16, BLACK, WHITE);
+  my_flush_and_sleep();
+#endif
+}
 
-  EPD_7IN5_V2_Init();
-  Paint_NewImage(black_image, EPD_7IN5_V2_WIDTH, EPD_7IN5_V2_HEIGHT, 0, WHITE);
-  Paint_SelectImage(black_image);
-  Paint_Clear(WHITE);
+void print_key_value_f(uint16_t root,
+                     uint16_t base,
+                     const char* label,
+                     float value) {
+  auto at = reset_print_buffer(label);
+  my_write_float(print_buffer + at, value);
+  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+}
+
+void print_key_value(uint16_t root,
+                     uint16_t base,
+                     const char* label,
+                     uint32_t value) {
+  auto at = reset_print_buffer(label);
+  my_write_uint32(print_buffer + at, value);
+  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+}
+
+
+void my_draw() {
+#ifdef MY_DISPLAY
+  my_init_and_clear();
 
   size_t at = 0;
   uint16_t base = 0;
   uint16_t root = 0;
 
-  base = 10;
   root = 10;
-  at = reset_print_buffer("Humidity: ");
-  my_write_float(print_buffer + at, homer1::sht3x_humidity);
-  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+
+  base = 10;
+  print_key_value_f(root, base, "Humidity: ", sht3x_humidity);
 
   base += 20;
-  at = reset_print_buffer("Temp: ");
-  my_write_float(print_buffer + at, homer1::sht3x_temperature);
-  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+  print_key_value_f(root, base, "Temp:     ", sht3x_temperature);
 
   base += 20;
-  at = reset_print_buffer("Pressure: ");
-  my_write_int32(print_buffer + at, homer1::bmp180_pressure);
-  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+  print_key_value(root, base, "Pressure: ", bmp180_pressure);
 
   base += 20;
-  at = reset_print_buffer("CO2: ");
-  my_write_int32(print_buffer + at, homer1::s8_co2);
-  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+  print_key_value(root, base, "CO2:      ", s8_co2);
+
+  base += 20;
+  print_key_value(root, base, "eCO2:     ", sgp30_eco2);
+
+  base += 20;
+  print_key_value(root, base, "TVOC:     ", sgp30_tvoc);
+
+  base += 20;
+  print_key_value(root, base, "H2:       ", sgp30_raw_h2);
+
+  base += 20;
+  print_key_value(root, base, "Ethanol:  ", sgp30_raw_ethanol);
+
+  // ============================
 
   root = 200;
 
   base = 10;
-  at = reset_print_buffer("PM10 - ENV:  ");
-  my_write_int32(print_buffer + at, homer1::pms5003_pm10_env);
-  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+  print_key_value(root, base, "PM10 -  ENV: ", pms5003_pm10_env);
 
   base += 20;
-  at = reset_print_buffer("PM25 - ENV:  ");
-  my_write_int32(print_buffer + at, homer1::pms5003_pm25_env);
-  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+  print_key_value(root, base, "PM25 -  ENV: ", pms5003_pm25_env);
 
   base += 20;
-  at = reset_print_buffer("PM100 - ENV: ");
-  my_write_int32(print_buffer + at, homer1::pms5003_pm100_env);
-  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+  print_key_value(root, base, "PM100 - ENV: ", pms5003_pm100_env);
 
   root = 400;
 
   base = 10;
-  at = reset_print_buffer("PM10 - STD:  ");
-  my_write_int32(print_buffer + at, homer1::pms5003_pm10_standard);
-  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+  print_key_value(root, base, "PM10 -  STD: ", pms5003_pm10_standard);
 
   base += 20;
-  at = reset_print_buffer("PM25 - STD:  ");
-  my_write_int32(print_buffer + at, homer1::pms5003_pm25_standard);
-  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+  print_key_value(root, base, "PM25 -  STD: ", pms5003_pm25_standard);
 
   base += 20;
-  at = reset_print_buffer("PM100 - STD: ");
-  my_write_int32(print_buffer + at, homer1::pms5003_pm100_standard);
-  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+  print_key_value(root, base, "PM100 - STD: ", pms5003_pm100_standard);
+
 
   root = 600;
 
   base = 10;
-  at = reset_print_buffer("PM03 - PTC:  ");
-  my_write_int32(print_buffer + at, homer1::pms5003_pm03_particles);
-  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+  print_key_value(root, base, "PM03 -  PTC: ", pms5003_pm03_particles);
 
   base += 20;
-  at = reset_print_buffer("PM05 - PTC:  ");
-  my_write_int32(print_buffer + at, homer1::pms5003_pm05_particles);
-  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+  print_key_value(root, base, "PM05 -  PTC: ", pms5003_pm05_particles);
 
   base += 20;
-  at = reset_print_buffer("PM10 - PTC:  ");
-  my_write_int32(print_buffer + at, homer1::pms5003_pm10_particles);
-  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+  print_key_value(root, base, "PM10 -  PTC: ", pms5003_pm10_particles);
 
   base += 20;
-  at = reset_print_buffer("PM25 - PTC:  ");
-  my_write_int32(print_buffer + at, homer1::pms5003_pm25_particles);
-  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+  print_key_value(root, base, "PM25 -  PTC: ", pms5003_pm25_particles);
 
   base += 20;
-  at = reset_print_buffer("PM50 - PTC:  ");
-  my_write_int32(print_buffer + at, homer1::pms5003_pm50_particles);
-  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+  print_key_value(root, base, "PM50 -  PTC: ", pms5003_pm50_particles);
 
   base += 20;
-  at = reset_print_buffer("PM100 - PTC: ");
-  my_write_int32(print_buffer + at, homer1::pms5003_pm100_particles);
-  Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
+  print_key_value(root, base, "PM100 -  PTC: ", pms5003_pm100_particles);
 
-  EPD_7IN5_V2_Display(black_image);
-  DEV_Delay_ms(2000);
-  printf("display sleep\r\n");
-  EPD_7IN5_V2_Sleep();
+  my_flush_and_sleep();
 
 #endif
 }
@@ -410,6 +457,8 @@ void setup() {
   if (!homer1::print_buffer)
     throw std::runtime_error("failed to allocate print buffer");
 
+  homer1::print_single_msg("loading, may take up to two minutes...");
+
 #endif
 
   pinMode(homer1::MY_SIGNAL_PIN, OUTPUT);
@@ -420,6 +469,14 @@ void setup() {
 
 void loop() {
   printf("looper\r\n");
+
+  homer1::connection = false;
   homer1::signal();
+  delay(1000);
+  if (!homer1::connection) {
+    printf("did not recieve any data after signal");
+    homer1::print_single_msg("connection error");
+  }
+
   delay(homer1::LOOP_DELAY_MILLIS);
 }

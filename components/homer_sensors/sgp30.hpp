@@ -20,7 +20,9 @@ const char* const NAME = "SGP30";
 
 const uint8_t I2C_ADDR = 0x58;
 const uint32_t I2C_DELAY = 20;
-const uint64_t MEASUREMENT_GAP_MILLIS = 2000;
+
+// FIXME datasheet says for accuracy should be 1 sec, but actually gives timeout.
+const uint64_t MEASUREMENT_GAP_MILLIS = 10000;
 
 const char* const SENSOR_ATTR_TVOC = "tvoc";
 const char* const SENSOR_ATTR_ECO2 = "co2";
