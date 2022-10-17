@@ -152,6 +152,7 @@ public:
         return d;
     }
 
+
 protected:
     explicit HomerSensor(uint64_t refresh_every) noexcept:
             _refresh_every{refresh_every},

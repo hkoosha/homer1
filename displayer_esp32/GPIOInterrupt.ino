@@ -58,6 +58,37 @@ uint16_t pms5003_pm100_particles = 0;
 uint16_t s8_co2 = 0;
 uint16_t s8_days = 0;
 
+
+void reset_data() {
+  sgp30_tvoc = 0;
+  sgp30_eco2 = 0;
+  sgp30_raw_h2 = 0;
+  sgp30_raw_ethanol = 0;
+
+
+  sht3x_temperature = 0;
+  sht3x_humidity = 0;
+
+  bmp180_temperature = 0;
+  bmp180_pressure = 0;
+
+  pms5003_pm10_standard = 0;
+  pms5003_pm25_standard = 0;
+  pms5003_pm100_standard = 0;
+  pms5003_pm10_env = 0;
+  pms5003_pm25_env = 0;
+  pms5003_pm100_env = 0;
+  pms5003_pm03_particles = 0;
+  pms5003_pm05_particles = 0;
+  pms5003_pm10_particles = 0;
+  pms5003_pm25_particles = 0;
+  pms5003_pm50_particles = 0;
+  pms5003_pm100_particles = 0;
+
+  s8_co2 = 0;
+  s8_days = 0;
+}
+
 bool check_frame() {
   if (my_data.size() >= 1024) {
     printf("too much data\r\n");
@@ -291,16 +322,28 @@ void my_flush_and_sleep() {
 }
 
 size_t my_write_int32(char* my, int32_t n) {
-  itoa(n, my, 10);
+  if (n == 0)
+    my[0] = '-';
+  else
+    itoa(n, my, 10);
   return strlen(my);
 }
 
 size_t my_write_uint32(char* my, uint32_t n) {
-  utoa(n, my, 10);
+  if (n == 0)
+    my[0] = '-';
+  else
+    utoa(n, my, 10);
+
   return strlen(my);
 }
 
 void my_write_float(char* my, float f) {
+  if (f == +0 || f == -0 || f == 0) {
+    my[0] = '-';
+    return;
+  }
+
   auto r = (int32_t)f;
   auto d = (int32_t)((f - r) * 100);
 
@@ -327,9 +370,9 @@ void print_single_msg(const char* msg) {
 }
 
 void print_key_value_f(uint16_t root,
-                     uint16_t base,
-                     const char* label,
-                     float value) {
+                       uint16_t base,
+                       const char* label,
+                       float value) {
   auto at = reset_print_buffer(label);
   my_write_float(print_buffer + at, value);
   Paint_DrawString_EN(root, base, print_buffer, &Font16, WHITE, BLACK);
@@ -471,6 +514,7 @@ void loop() {
   printf("looper\r\n");
 
   homer1::connection = false;
+  homer1::reset_data();
   homer1::signal();
   delay(1000);
   if (!homer1::connection) {

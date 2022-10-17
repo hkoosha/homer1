@@ -115,6 +115,7 @@ private:
 
     i2c::Device* i2c;
     SensorData data;
+    uint16_t last_tvoc = 0;
     bool initialized;
 };
 

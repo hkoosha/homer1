@@ -221,6 +221,13 @@ void Sensor::refresh_data() noexcept
         return;
     }
 
+    // The stupid sensors is keep sensing 0 in between. Use a previously read
+    // value if still relevant (read within 30 secs).
+    if (this->data.tvoc == 0 && (now_millis() - this->_last_update) < 30000)
+        this->data.tvoc = this->last_tvoc;
+    else
+        this->last_tvoc = this->data.tvoc;
+
     this->data._get_error().mark_ok_has_data();
 }
 
