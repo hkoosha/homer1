@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cmath>
 
 #include "esp_log.h"
 
@@ -311,6 +312,23 @@ HwErr Sensor::send_and_read(uint16_t delay_millis,
     return err;
 }
 
+HwErr Sensor::set_absolute_humidity(float temperature,
+                                    float humidity)
+{
+    // approximation formula from Sensirion SGP30 Driver Integration chapter 3.15
+
+    // [g/m^3]
+    const double absolute_humidity =
+            216.7 * ((humidity / 100.0) * 6.112 *
+                     exp((17.62 * temperature) / (243.12 + temperature)) /
+                     (273.15 + temperature));
+
+    // [mg/m^3]
+    const auto absolute_humidity_scaled = static_cast<uint32_t>(1000.0 * absolute_humidity);
+
+    return this->set_absolute_humidity(absolute_humidity_scaled);
+}
+
 HwErr Sensor::set_absolute_humidity(uint32_t absolute_humidity)
 {
     if (absolute_humidity > 256000)
@@ -372,6 +390,7 @@ HwErr Sensor::measure()
     this->data.tvoc = reply[1];
     return err;
 }
+
 
 }
 

@@ -238,6 +238,23 @@ public:
         this->unlock();
     }
 
+    void update_sgp30_params_from_sht3x() noexcept
+    {
+        assert(my_is_sht3x_enabled());
+        assert(my_is_sgp30_enabled());
+        assert(this->data.sht3x.get_error().is_ok());
+
+        auto err = this->peripheral.sgp30->set_absolute_humidity(
+                this->data.sht3x.temperature,
+                this->data.sht3x.humidity
+        );
+
+        if (!err.is_ok())
+            ESP_LOGE(MY_TAG, "unable to set humidity on SGP30");
+        else
+            ESP_LOGI(MY_TAG, "set humidity on SGP30");
+    }
+
 
     void dump_pretty_print(std::stringstream& ss) const noexcept
     {
@@ -478,9 +495,21 @@ void task_read_sensors(Sensor* sensor) noexcept
     xTaskCreate(
             [](void* arg) {
                 auto* sensor0 = static_cast<Sensor*>(arg);
+
+                uint64_t last_adjustment = now_millis();
+
                 while (sensor0->loop) {
-                    if (my_is_sgp30_enabled())
+                    if (my_is_sgp30_enabled()) {
+                        auto now = now_millis();
+                        if (my_is_sht3x_enabled()
+                            && sensor0->data.sht3x.get_error().is_ok()
+                            && (now - last_adjustment >= 30000)) {
+                            last_adjustment = now;
+                            sensor0->update_sgp30_params_from_sht3x();
+                        }
+
                         sensor0->update_sgp30();
+                    }
 
                     if (my_is_bmp180_enabled())
                         sensor0->update_bmp180();
@@ -1001,9 +1030,9 @@ void my_gpio_init(const Sensor* const sensor)
                         auto err = i2c.write_to_slave(0x42, data.data(), data.size());
 
                         if (err.is_ok())
-                            ESP_LOGI(MY_TAG, "the thing happened");
+                            ESP_LOGI(MY_TAG, "data sent to display");
                         else
-                            ESP_LOGE(MY_TAG, "the thing happened with error!!!");
+                            ESP_LOGE(MY_TAG, "data not sent to display");
                     }
             },
             "work_gpio_interrupt",

@@ -92,6 +92,14 @@ public:
 
     [[nodiscard]] bool is_initialized() const noexcept;
 
+
+    /*
+    * @param temperature in Celsius.
+    * @param humidity %RH,
+    */
+    [[nodiscard]] HwErr set_absolute_humidity(float temperature,
+                                              float humidity);
+
     [[nodiscard]] HwErr set_absolute_humidity(uint32_t absolute_humidity);
 
     [[nodiscard]] HwErr set_iaq_baseline(uint16_t eco2_base, uint16_t tvoc_base);
