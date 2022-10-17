@@ -207,8 +207,6 @@ Sensor& Sensor::operator=(Sensor&& other) noexcept
 
 void Sensor::refresh_data() noexcept
 {
-    this->i2c->set_delay(I2C_DELAY);
-
     auto err = this->measure();
     this->data._get_error().merge_from(err);
     if (err.has_error()) {
@@ -250,6 +248,8 @@ HwErr Sensor::init() noexcept
         err.add_sensor_err(ERROR_UNSUPPORTED_SENSOR);
         return err;
     }
+
+    my_sleep_millis(10);
 
     const uint8_t iaq_init_cmd[2] = {0x20, 0x03};
     err = this->send_and_read(10, iaq_init_cmd, 2, nullptr, 0);
@@ -357,7 +357,7 @@ HwErr Sensor::measure()
     const uint8_t command[] = {0x20, 0x08};
     uint16_t reply[2];
 
-    auto err = this->send_and_read(12, command, 2, reply, 2);
+    auto err = this->send_and_read(20, command, 2, reply, 2);
     if (!err.is_ok())
         return err;
 

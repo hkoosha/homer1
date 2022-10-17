@@ -479,14 +479,14 @@ void task_read_sensors(Sensor* sensor) noexcept
             [](void* arg) {
                 auto* sensor0 = static_cast<Sensor*>(arg);
                 while (sensor0->loop) {
+                    if (my_is_sgp30_enabled())
+                        sensor0->update_sgp30();
+
                     if (my_is_bmp180_enabled())
                         sensor0->update_bmp180();
 
                     if (my_is_sht3x_enabled())
                         sensor0->update_sht3x();
-
-                    if (my_is_sgp30_enabled())
-                        sensor0->update_sgp30();
 
                     my_sleep_millis(my_measurement_delay_millis());
                 }

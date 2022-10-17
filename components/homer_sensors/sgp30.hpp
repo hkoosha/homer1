@@ -19,7 +19,7 @@ namespace homer1::Sgp30 {
 const char* const NAME = "SGP30";
 
 const uint8_t I2C_ADDR = 0x58;
-const uint32_t I2C_DELAY = 20;
+const uint32_t I2C_DELAY = 1000 / portTICK_PERIOD_MS;
 
 // FIXME datasheet says for accuracy should be 1 sec, but actually gives timeout.
 const uint64_t MEASUREMENT_GAP_MILLIS = 10000;
