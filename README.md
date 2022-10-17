@@ -10,12 +10,13 @@ Raspberry Pi auto configuration included (for Grafana, Prometheus and InfluxDB).
 - SHT3X
 - S8 (SenseAir)
 - PMS5003
-- GY-SGP30 ECO2 (TBD)
+- SGP30 eCO2
 
 ## ROADMAP
 
 - Make it power consumption friendly.
 - SHT3X takes no calibration.
+- SGP30 causes panic in interrupt handler of i2c.
 
 #### References
 
