@@ -298,7 +298,7 @@ HwErr Sensor::send_and_read(uint16_t delay_millis,
 
         read[i] = reply_buffer[i * 3];
         read[i] <<= 8;
-        read[i] = reply_buffer[i * 3 + 1];
+        read[i] |= reply_buffer[i * 3 + 1];
     }
 
     return err;
