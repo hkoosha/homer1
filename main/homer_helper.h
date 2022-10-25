@@ -67,7 +67,11 @@ inline uint32_t my_influxdb_push_delay()
 
 inline bool my_is_wifi_enabled()
 {
+#ifdef CONFIG_MY_WIFI_ENABLED
     return CONFIG_MY_WIFI_ENABLED;
+#else
+    return false;
+#endif
 }
 
 // ============================================================================

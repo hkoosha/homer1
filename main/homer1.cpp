@@ -794,8 +794,25 @@ void run_httpd_server(Sensor* sensor)
 
 }
 
-// WIFI
+// NVS & WIFI
 namespace {
+
+const char* const NVS_TAG = "my_nvs";
+
+void my_nvs_init() noexcept
+{
+    ESP_LOGI(NVS_TAG, "NVS init...");
+
+    esp_err_t ret = nvs_flash_init();
+
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+
+    ESP_ERROR_CHECK(ret);
+}
+
 
 const char* const WIFI_TAG = "my_scan";
 
@@ -857,7 +874,6 @@ void my_wifi_init(const char* ssid,
     std::memcpy(wifi_config.sta.password, password, std::strlen(password));
 
     ESP_LOGI(WIFI_TAG, "SSID: %s;", wifi_config.sta.ssid);
-    ESP_LOGI(WIFI_TAG, "PASS: %s;", wifi_config.sta.password);
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
@@ -935,27 +951,6 @@ void my_i2c_init(const i2c_port_t port,
 
 }
 
-// NVS
-namespace {
-
-const char* const NVS_TAG = "my_nvs";
-
-void my_nvs_init() noexcept
-{
-    ESP_LOGI(NVS_TAG, "NVS init...");
-
-    esp_err_t ret = nvs_flash_init();
-
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
-    }
-
-    ESP_ERROR_CHECK(ret);
-}
-
-}
-
 // GPIO & INTERRUPT
 namespace {
 
@@ -974,6 +969,11 @@ void IRAM_ATTR gpio_isr_handler(void* arg)
 
 void my_gpio_init(const Sensor* const sensor)
 {
+    if (!my_enable_write_to_esp()) {
+        ESP_LOGW(MY_TAG, "writing to external device disabled");
+        return;
+    }
+
     gpio_config_t gpio = {};
     gpio.intr_type = GPIO_INTR_HIGH_LEVEL;
     gpio.mode = GPIO_MODE_INPUT;
