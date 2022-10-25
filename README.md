@@ -10,7 +10,6 @@ Sensors:
 - SHT3X
 - S8 (SenseAir)
 - PMS5003
-- SGP30 eCO2
 
 ## How?
 
@@ -21,7 +20,8 @@ Sensors:
   - Reporting: optionally enable [InfluxDB](https://www.influxdata.com/) and
     [Prometheus](https://prometheus.io/).
   - Sensors: enable the sensors you're planning to connect. Configure and take
-    note of the pins you will connect the sensors to here.
+    note of the pins you will connect the sensors to here. do **NOT** enable
+    SGP30.
   - Display: if you have an e-paper [driver](https://www.waveshare.com/wiki/E-Paper_ESP32_Driver_Board)
     board, enable it here, and configure the pin used for interrupt signal
     comming from driver board to the main esp32. If you don't have a driver
