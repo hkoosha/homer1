@@ -117,15 +117,15 @@ public:
             sht3x{sht3x},
             sgp30{sgp30}
     {
-        if (!this->s8)
+        if (nullptr == this->s8)
             throw std::runtime_error("s8 is null");
-        if (!this->pms5003)
+        if (nullptr == this->pms5003)
             throw std::runtime_error("pms5003 is null");
-        if (!this->bmp180)
+        if (nullptr == this->bmp180)
             throw std::runtime_error("bmp180 is null");
-        if (!this->sht3x)
+        if (nullptr == this->sht3x)
             throw std::runtime_error("sht3x is null");
-        if (!this->sgp30)
+        if (nullptr == this->sgp30)
             throw std::runtime_error("sgp30 is null");
     }
 
@@ -960,6 +960,8 @@ uint64_t last_send_out = 0;
 
 void IRAM_ATTR gpio_isr_handler(void* arg)
 {
+    (void) arg;
+
     auto now = now_millis();
     if (now - last_send_out >= 1000) {
         last_send_out = now;
@@ -1049,7 +1051,7 @@ void my_gpio_init(const Sensor* const sensor)
 }
 
 
-extern "C" void app_main(void)
+extern "C" [[maybe_unused]] void app_main(void)
 {
     ESP_LOGI(MY_TAG, "init...");
     my_nvs_init();

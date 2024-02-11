@@ -1,3 +1,7 @@
+## Update
+
+This project is ported to Raspberry Pi Pico: https://github.com/hkoosha/homer2
+
 ## What?
 
 A project to read out sensors connected to ESP32 and write to InfluxDB and expose for Prometheus. ESP-IDF based.
